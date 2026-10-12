@@ -42,20 +42,20 @@
   </div>
   <div id="out"></div>
 
-  <script src="js/config.js?v=2026.10.12-1"></script>
-  <script src="js/data/patients.js?v=2026.10.12-1"></script>
-  <script src="js/data/patients-imported.js?v=2026.10.12-1"></script>
-  <script src="js/util.js?v=2026.10.12-1"></script>
-  <script src="js/scan.js?v=2026.10.12-1"></script>
-  <script src="js/store.js?v=2026.10.12-1"></script>
-  <script src="js/model.js?v=2026.10.12-1"></script>
+  <script src="js/config.js?v=2026.10.12-2"></script>
+  <script src="js/data/patients.js?v=2026.10.12-2"></script>
+  <script src="js/data/patients-imported.js?v=2026.10.12-2"></script>
+  <script src="js/util.js?v=2026.10.12-2"></script>
+  <script src="js/scan.js?v=2026.10.12-2"></script>
+  <script src="js/store.js?v=2026.10.12-2"></script>
+  <script src="js/model.js?v=2026.10.12-2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script>
     (function () {
       const esc = U.esc;
-      // Students only see labels for their own sim experience; instructors see all.
+      // Any signed-in user can print labels for every test account.
       const sess = Store.session() || {};
-      const pts = Model.allPatients().filter(p => Store.instructorUnlocked() || (sess.experience && (p.experiences || []).includes(sess.experience)));
+      const pts = Store.instructorUnlocked() || sess.name ? Model.allPatients() : [];
       if (!pts.length) document.body.insertAdjacentHTML('beforeend', '<p class="note">Sign in to the EHR, or unlock Instructor Tools, to print labels.</p>');
       const pick = document.getElementById('pick');
       pts.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `${p.name.last}, ${p.name.first}`; pick.appendChild(o); });

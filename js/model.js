@@ -301,6 +301,12 @@
   M.signature = e => `${e.user.name}${e.user.cred ? ', ' + e.user.cred : ''}`;
 
   M.bmi = p => (p.heightCm && p.weightKg) ? (p.weightKg / Math.pow(p.heightCm / 100, 2)).toFixed(1) : null;
+  M.bsa = p => (p.heightCm && p.weightKg) ? Math.sqrt(p.heightCm * p.weightKg / 3600).toFixed(2) : null;
+  // Account number for a test account: set in the data, or a stable number made from the patient id.
+  M.account = p => p.account || ('EB' + Scan.shortCode('ACCT-' + p.id));
+  M.chiefComplaint = p => p.chiefComplaint || p.admitDx;
+  M.language = p => p.language || (p.demographics && (p.demographics['Primary language'] || p.demographics.Language)) || 'English';
+  M.location = p => [p.unit, p.room && p.room !== '—' ? p.room : ''].filter(Boolean).join(' · ');
 
   window.Model = M;
 })();
