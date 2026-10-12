@@ -38,7 +38,7 @@ window.EHR_CONFIG = {
   lateEntryMinutes: 30,
 
   // Prefix for all browser storage keys. Change it to start fresh everywhere.
-  storagePrefix: 'atuSimEHR.v1',
+  storagePrefix: 'emrTestEnv.v1',   // separate from the ATU Meditech site, which shares the laurajobe.github.io address
 
   // Default adult reference ranges used to flag vital signs (H/L).
   // A patient can override any of these with its own "vitalRanges".
