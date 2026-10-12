@@ -1,3 +1,21 @@
+# EMR Training Environment (TEST)
+
+A copy of the ATU Simulation Hospital SimEHR set up as an **EMR training environment**: no levels or sim experiences, just a **bank of test accounts** any student can add to their own list and practice in. It is laid out like MEDITECH Expanse.
+
+**What is different from the ATU Meditech Simulation Hospital site**
+
+- **Start-up, like a hospital workstation:** a mock **Windows desktop** with a green **M MEDITECH Expanse** icon (double-click, or tap on a tablet; other icons say only MEDITECH is available) → the **MEDITECH EXPANSE** sign-in (user name, role, chart mode — no experience or level) → **“You are logged in as …”** with **⊕ Launch New Session** → the status board. Signing out (User ▸ Sign Out, or Close on the status board) returns to the desktop.
+- **Blank status board:** every student starts with an empty **My List** and adds patients from the **☰ (3-line) menu** next to their name: *Add Patients…* (search by name, MRN, account, room; filter by unit), *Remove Selected Patient*, *Clear My List*, *Refresh*. Each user's list is kept on the device for their next session. Faculty mode adds *All Test Accounts* to the menu.
+- **Toolbar:** **Return To** (green **E**) opens the home menu: *Patient Care Status Board* and every chart you have open (✕ closes one, *Close All* closes them all). **Home ▾**, then **Chart**, **Document ▾**, **Orders**, **Discharge** in the middle (on the status board they act on the selected patient), and **Workload**, **Menu**, **More**, **Help**, **User** (name, chart mode, Sign Out), **Close** on the right. Close closes the open chart; on the status board it signs you out.
+- **Patient Care Status Board** (tracker): your name with the **☰ menu**, ↻ Refresh, and **Find Patient** (name, MRN, account number, unit, or room). Buttons: Open Patient Summary and Open Hand Off. Each row shows the patient, reason for visit, alerts, code status/allergies/isolation, an **Order** button, the latest vital signs (abnormal values highlighted), and chips for new orders, MAR (red when a dose is overdue), new results, and interventions due. The **▸ arrow** drops down account number, MRN, language, interpreter, height, weight, allergies, indicators, recent orders, consults, next task, meds on hold, isolation, and advance directive.
+- **Chart:** folder tabs on the left (including **Workload Items**) and the patient column on the right: name, age/sex/DOB, MRN, location, height/weight with **BSA/BMI**, reason for visit, **Acc#**, code status, and **Search Patient's Chart**. The search covers the whole chart — problems and history, allergies, indicators, orders, medications, lab results, imaging, provider and nursing notes, documents, vital signs, administrative data, and everything students have charted (assessments, MAR, I&O, plan of care, transfusions). It understands common abbreviations (Hgb, K, BP, Levophed…), and each match opens the screen it came from.
+- **Discharge** is turned off so every test account stays available.
+- Saved charting is kept separate from the ATU Meditech site on the same device (`storagePrefix` in `js/config.js`).
+
+The rest of this README describes the features the two sites share.
+
+---
+
 # ATU Simulation Hospital — SimEHR
 
 A simulation electronic health record for nursing students to document in during simulation. It's laid out like MEDITECH Expanse: a dark icon toolbar (Return To, Home, Workload, Chart, Document, Orders, Suspend), Expanse's 3 × 4 folder tabs (Diagnostics · Provider Notes · Nurse/Allied Health · Medications / History & Problems · Administrative (demographics, next of kin, insurance) · Other Clinical (Chart Report) / Summary · Activity · Flowsheets · Health Mgmt, with the active row in tan), a right-hand patient panel (Special Indicators, Allergies, Problems), and yellow-highlighted abnormal values, plus an eMAR with barcode scanning, flowsheets, and notes. It's an independent teaching tool, not affiliated with MEDITECH, and never holds real patient data.

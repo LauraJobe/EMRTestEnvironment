@@ -29,6 +29,12 @@
     setSession: s => write('session', s),
     clearSession: () => remove('session'),
 
+    // Each user's My List of test accounts, and the charts they have open (Return To menu).
+    myList() { const s = Store.session(); return s ? read('mylist.' + s.name.toLowerCase(), []) : []; },
+    setMyList(ids) { const s = Store.session(); if (s) write('mylist.' + s.name.toLowerCase(), ids); },
+    openCharts() { const s = Store.session(); return s ? read('open.' + s.name.toLowerCase(), []) : []; },
+    setOpenCharts(ids) { const s = Store.session(); if (s) write('open.' + s.name.toLowerCase(), ids); },
+
     instructorUnlocked() { try { return sessionStorage.getItem(P + 'instructor') === '1'; } catch (e) { return false; } },
     setInstructor(on) { try { on ? sessionStorage.setItem(P + 'instructor', '1') : sessionStorage.removeItem(P + 'instructor'); } catch (e) { /* ignore */ } },
 

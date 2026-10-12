@@ -7,17 +7,9 @@
 
   const allergyText = p => p.nkda || !(p.allergies || []).length ? 'NKDA' : p.allergies.map(a => a.agent).join(', ');
 
-  // Students are locked to the experience chosen at sign-in; only an unlocked
-  // instructor may switch experiences or view "all".
-  Screens.experience = () => {
-    const s = Store.session() || {};
-    if (Store.instructorUnlocked()) return s.viewExperience || s.experience || 'all';
-    return s.experience && s.experience !== 'all' ? s.experience : '';
-  };
-  Screens.canSee = p => {
-    const exp = Screens.experience();
-    return exp === 'all' || (p.experiences || []).includes(exp);
-  };
+  // Training environment: every test account is open to every user (no levels or experiences).
+  Screens.experience = () => 'all';
+  Screens.canSee = () => true;
   // Chart mode: faculty (PIN unlocked), observer (view only), or student (documenting).
   Screens.mode = () => Store.instructorUnlocked() ? 'faculty' : ((Store.session() || {}).observer ? 'observer' : 'student');
   Screens.MODE_LABEL = { student: 'Student', observer: 'Observer', faculty: 'Faculty' };
@@ -36,7 +28,7 @@
     if (to === 'faculty' || from === 'observer') {
       UI.modal({
         title: to === 'faculty' ? 'Switch to Faculty' : 'Leave Observer Mode',
-        body: `<p>${to === 'faculty' ? 'Faculty mode shows every experience and the instructor tools.' : 'An instructor must enter the PIN to change an observer to a documenting student.'}</p>
+        body: `<p>${to === 'faculty' ? 'Faculty mode opens the instructor tools.' : 'An instructor must enter the PIN to change an observer to a documenting student.'}</p>
           <label class="field"><span>Instructor PIN</span><input type="password" name="pin" autofocus inputmode="numeric"></label>`,
         buttons: [{ label: 'Cancel' }, { label: 'Switch', cls: 'btn-primary', onClick: api => {
           if (U.formValues(api.el).pin !== String(C.instructorPin)) { UI.formError(api.el.querySelector('.modal-body'), 'Incorrect PIN.'); return false; }
@@ -49,31 +41,28 @@
     apply();
   };
 
-  Screens.experienceLabel = id => id === 'all' ? 'All Experiences' : ((C.experiences.find(x => x.id === id) || {}).label || id);
+  Screens.experienceLabel = () => C.environmentName;
 
   /* ---------------- Sign in ---------------- */
   Screens.login = {
     render() {
-      return `<div class="login-wrap">
-        <form class="login-card" autocomplete="off">
-          <div class="login-brand"><div class="logo-mark" aria-hidden="true">✚</div><div><div class="brand-1">${esc(C.hospitalName)}</div><div class="brand-2">${esc(C.systemName)} · Simulation Electronic Health Record</div></div></div>
+      return `<div class="xp">
+        <div class="xp-logo"><div class="xp-brand">MEDITECH</div><div class="xp-name">E X P A N S E</div></div>
+        <form class="login-card xp-card" autocomplete="off">
+          <div class="xp-card-h">${esc(C.hospitalName)} Test — Sign In</div>
           <div class="sim-warning">SIMULATION ONLY — Do not enter real patient information.</div>
-          <label class="field"><span>Full name</span><input name="name" required autofocus placeholder="First Last"></label>
+          <label class="field"><span>User name</span><input name="name" required autofocus placeholder="First Last"></label>
           <label class="field"><span>Role</span><select name="cred">
             <option value="SN">Student Nurse (SN)</option><option value="RN">Registered Nurse (RN)</option>
             <option value="Instructor">Instructor</option></select></label>
-          <label class="field"><span>Simulation experience</span><select name="experience" required>
-            <option value="">— Select your sim experience —</option>
-            ${C.experiences.map(x => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('')}
-</select></label>
           <fieldset class="field login-mode"><legend>Sign in as</legend>
             <label class="check"><input type="radio" name="mode" value="student" checked> <span><strong>Documenting nurse</strong> — I am charting in this simulation</span></label>
             <label class="check"><input type="radio" name="mode" value="observer"> <span><strong>Observer (view only)</strong> — I am watching; I can read the chart but not document or acknowledge</span></label>
           </fieldset>
-          <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Level 3 — Group A"></label>
+          <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Fall cohort — Group A"></label>
           <button class="btn btn-primary btn-block" type="submit">Sign In</button>
           <p class="muted small">Your name is attached to every entry as your electronic signature.</p>
-          <p class="muted small">Version ${U.esc(C.version || '')}</p>
+          <p class="muted small">Version ${U.esc(C.version || '')} · <a href="#/" data-action="desktop">Back to desktop</a></p>
         </form></div>`;
     },
     bind(root) {
@@ -81,109 +70,222 @@
         e.preventDefault();
         const v = U.formValues(e.target);
         if (!v.name) return;
-        if (!v.experience) { UI.formError(e.target, 'Choose your simulation experience.'); return; }
-        Store.setSession({ name: v.name, cred: v.cred, group: v.group, experience: v.experience, observer: v.mode === 'observer', signedIn: Date.now() });
-        location.hash = '#/census';
+        Store.setSession({ name: v.name, cred: v.cred, group: v.group, observer: v.mode === 'observer', signedIn: Date.now(), launched: false });
+        location.hash = '#/launch';
         App.render();
       });
     }
   };
 
-  /* ---------------- Status board (census) ---------------- */
-  let levelTab = null;
+  /* ---------------- Patient Care Status Board (tracker) ----------------
+   * Laid out like the Expanse tracker: the user's name with the ☰ box to add test accounts,
+   * Find Patient, list tabs (My List, a unit list, More Lists), and one row per patient with
+   * an ▸ arrow that drops down more information. */
+  let listTab = null;          // 'my' | 'all' | 'unit:<unit name>'
   let selected = null;
+  const expanded = {};
+  const units = () => Array.from(new Set(Model.allPatients().map(p => p.unit))).sort();
+  const listName = t => t === 'my' ? 'My List' : t === 'all' ? 'All Test Accounts' : t.slice(5);
+  const inList = (t, b) => t === 'my' ? Store.myList().includes(b.id) : t === 'all' ? true : b.unit === t.slice(5);
+  const short = u => u.replace(/\s+Unit\b/, '').replace(/^Station \d+ — /, '');
 
-  function nextMeds(p, doc) {
-    const out = [];
-    p.meds.forEach(m => (m.doseTimes || []).forEach(dt => {
-      const st = Model.doseStatus(p, doc, m, dt).code;
-      if (st === 'due' || st === 'overdue' || st === 'future') out.push({ time: dt.time, text: `${m.name} ${m.dose}`, overdue: st === 'overdue' });
-    }));
-    return out.sort((x, y) => x.time - y.time).slice(0, 3);
+  function vitalsStrip(p, doc) {
+    const v = k => Model.latestVital(p, doc, k);
+    const cell = (label, key, txt) => {
+      const x = v(key);
+      if (!x) return '';
+      const f = Model.flag(p, key, x.value);
+      return `<span class="tk-v">${label} <b class="${f ? 'tk-abn' : ''}">${esc(txt ? txt(x.value) : x.value)}${f ? ' ' + f : ''}</b></span>`;
+    };
+    const sbp = v('sbp'), dbp = v('dbp');
+    const bp = sbp && dbp ? `<span class="tk-v">BP <b class="${Model.flag(p, 'sbp', sbp.value) || Model.flag(p, 'dbp', dbp.value) ? 'tk-abn' : ''}">${esc(sbp.value)}/${esc(dbp.value)}</b></span>` : '';
+    const o2 = v('o2');
+    const out = bp + cell('Pulse', 'hr') + cell('Resp', 'rr') + cell('Temp', 'temp', t => t + 'F') + cell('O2 Sat', 'spo2', t => t + '%') + (o2 ? `<span class="tk-v tk-o2">(${esc(o2.value)})</span>` : '');
+    return out || '<span class="muted">No vital signs charted</span>';
   }
-  const lines = (list, empty) => list.length ? list.map(x => `<div class="sb-line"><span class="${x.overdue ? 'sb-late' : ''}">${U.fmtTime(x.time)}</span> ${esc(x.text || x.name)}</div>`).join('') : (empty || '');
+
+  // Pending-work chips on the right of each row, like the tracker's order/result icons.
+  function chips(p, doc) {
+    const out = [];
+    const unacked = Model.unackedOrders(p, doc);
+    const byCat = {};
+    unacked.forEach(o => { const c = /lab/i.test(o.cat) ? 'LAB' : /imag|radiol|x-?ray/i.test(o.cat) ? 'Xray' : /med/i.test(o.cat) ? 'Med Order' : o.cat; byCat[c] = (byCat[c] || 0) + 1; });
+    Object.keys(byCat).forEach(c => out.push(`<span class="tk-chip tk-new" title="${byCat[c]} new ${esc(c)} order(s) to acknowledge">${esc(c)}${byCat[c] > 1 ? ' ' + byCat[c] : ''}</span>`));
+    const due = Model.dueCounts(p, doc);
+    if (due.overdue) out.push(`<span class="tk-chip tk-late" title="${due.overdue} overdue dose(s)">⏱ MAR</span>`);
+    else if (due.due) out.push(`<span class="tk-chip tk-due" title="${due.due} dose(s) due">MAR</span>`);
+    else out.push('<span class="tk-chip">MAR</span>');
+    Model.unreviewedResults(p, doc).forEach(r => {
+      const crit = (r.results || []).some(x => /\*/.test(Model.labFlag(x)));
+      out.push(`<span class="tk-chip ${crit ? 'tk-late' : 'tk-new'}" title="New result to review">${crit ? '! ' : ''}${esc(r.panel || r.study)}</span>`);
+    });
+    const tasks = Views.worklist.due(p, doc);
+    if (tasks.length) out.push(`<span class="tk-chip" title="Interventions due">Interventions ${tasks.length}</span>`);
+    return out.join('');
+  }
+
+  function detail(p, doc) {
+    const allergies = p.nkda || !(p.allergies || []).length ? 'No Known Drug Allergies' : p.allergies.map(a => esc(a.agent)).join(', ');
+    const recent = [...p.orders].sort((a, b) => b.time - a.time).slice(0, 3);
+    const consults = p.orders.filter(o => /consult/i.test(o.cat + ' ' + o.text)).map(o => esc(o.text.replace(/^consult(ation)?:?\s*/i, '')));
+    const holds = p.meds.filter(m => m.holdReason && m.status === 'Active').map(m => esc(m.name));
+    const next = Views.worklist.due(p, doc)[0];
+    const kv = (k, v) => `<div class="tk-k">${esc(k)}</div><div>${v}</div>`;
+    return `<div class="tk-detail">
+      <div class="tk-dl">${kv('Surveillance', `<strong>${esc(Model.chiefComplaint(p))}</strong>`)}${kv('Account Num', esc(Model.account(p)))}${kv('MRN', esc(p.mrn))}${kv('Language', esc(Model.language(p)))}${kv('Interpreter?', p.interpreter ? 'Y' : 'N')}${kv('Height', p.heightCm ? esc(p.heightCm) + ' cm' : '—')}${kv('Weight', p.weightKg ? esc(p.weightKg) + ' kg' : '—')}</div>
+      <div class="tk-dl">${kv('Attending', esc(p.attending))}${kv('Allergies', `<span class="${p.nkda || !(p.allergies || []).length ? '' : 'tk-red'}">${allergies}</span>`)}${kv('Indicators', esc((p.flags || []).join(', ') || '—'))}${kv('Orders', recent.map(o => `<div>${esc(U.fmtDT(o.time))} ${esc(o.text)}</div>`).join('') || '—')}${kv('Consults', consults.join('<br>') || '—')}</div>
+      <div class="tk-dl">${kv('Next Task', next ? `${esc(U.fmtTime(next.time))} ${esc(next.text || next.name)}` : '—')}${kv('Meds on Hold', holds.join(', ') || '—')}${kv('Isolation', esc(p.isolation || 'None'))}${kv('Advance Directive', esc(p.advanceDirective || '—'))}</div>
+    </div>`;
+  }
+
+  function row(base) {
+    const p = Model.get(base.id);
+    const doc = Store.doc(p.id);
+    const allergy = !(p.nkda || !(p.allergies || []).length);
+    const initials = (p.name.first[0] + p.name.last[0]).toUpperCase();
+    const open = !!expanded[p.id];
+    return `<div class="tk-row ${selected === p.id ? 'tk-sel' : ''}" data-open="${esc(p.id)}" tabindex="0">
+        <button type="button" class="tk-exp" data-exp="${esc(p.id)}" aria-expanded="${open}" aria-label="${open ? 'Hide' : 'Show'} details for ${esc(p.name.last)}">${open ? '▾' : '▸'}</button>
+        <div class="tk-pix"><div class="avatar tk-avatar" aria-hidden="true">${esc(initials)}</div></div>
+        <div class="tk-c tk-name"><a href="#/patient/${esc(p.id)}/summary"><strong>${esc(p.name.last)},${esc(p.name.first)}</strong></a>
+          <div>${esc(p.age.replace(' years', ''))} ${esc(p.sex)}</div><div>${esc(short(p.unit))}</div><div>${esc(p.room && p.room !== '—' ? p.room : '')}</div></div>
+        <div class="tk-c tk-reason"><div class="tk-cc"><strong>${esc(Model.chiefComplaint(p))}</strong></div><div class="muted">${esc(p.attending)}</div><div class="muted">Adm ${esc(U.fmtDate(p.admitTime))}</div></div>
+        <div class="tk-c tk-alerts">${(p.flags || []).map(f => `<span class="tk-alert">${esc(f)}</span>`).join('') || '<span class="muted">—</span>'}
+          <div class="${(p.homeMeds || []).length ? 'tk-green' : 'muted'}">${(p.homeMeds || []).length ? 'Home Meds Confirmed' : 'No Home Meds'}</div></div>
+        <div class="tk-c tk-codec"><div class="${p.codeStatus === 'DNR' ? 'tk-red' : ''}"><strong>${esc(p.codeStatus)}</strong></div>
+          <div class="${allergy ? 'tk-red' : ''}">${allergy ? esc(allergyText(p)) : 'NKDA'}</div><div>${esc(p.isolation && !/^(none)$/i.test(p.isolation) ? p.isolation : '')}</div></div>
+        <div class="tk-ord"><a class="tk-ordbtn" href="#/patient/${esc(p.id)}/orders" title="Orders">${'<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="3" width="12" height="15" rx="1"/><path d="M8 3V2h4v1M7 8h6M7 11h6M7 14h4"/></svg>'}<span>Order</span></a></div>
+        <div class="tk-right"><div class="tk-vitals">${vitalsStrip(p, doc)}</div><div class="tk-chips">${chips(p, doc)}</div></div>
+      </div>${open ? detail(p, doc) : ''}`;
+  }
+
+  function addPatients(then) {
+    const mine = Store.myList();
+    const bank = Model.allPatients().filter(b => !mine.includes(b.id));
+    UI.modal({
+      title: 'Add Patients to My List',
+      wide: true,
+      body: `<div class="form-grid"><label class="field"><span>Search test accounts (name, MRN, account, room)</span><input name="q" autocomplete="off" placeholder="Type to filter"></label>
+        <label class="field"><span>Unit</span><select name="unit"><option value="">All units</option>${units().map(u => `<option>${esc(u)}</option>`).join('')}</select></label></div>
+        ${bank.length ? `<table class="grid tk-bank"><thead><tr><th></th><th>Name</th><th>Age/Sex</th><th>MRN / Account</th><th>Unit / Room</th><th>Reason for visit</th></tr></thead><tbody>
+        ${bank.map(b => `<tr data-unit="${esc(b.unit)}" data-hay="${esc([b.name.last, b.name.first, b.mrn, Model.account(b), b.unit, b.room, b.admitDx].join(' ').toLowerCase())}"><td><input type="checkbox" name="add" value="${esc(b.id)}" aria-label="Add ${esc(b.name.last)}"></td>
+          <td><strong>${esc(b.name.last)},${esc(b.name.first)}</strong></td><td>${esc(String(b.age).replace(' years', ''))} ${esc(b.sex)}</td><td>${esc(b.mrn)}<br><small>${esc(Model.account(b))}</small></td><td>${esc(Model.location(b))}</td><td>${esc(b.admitDx)}</td></tr>`).join('')}</tbody></table>`
+          : '<p class="empty">Every test account is already on your list.</p>'}`,
+      onOpen(api) {
+        const q = api.el.querySelector('[name="q"]'), unit = api.el.querySelector('[name="unit"]');
+        const filter = () => { const t = q.value.trim().toLowerCase(); api.el.querySelectorAll('tr[data-hay]').forEach(r => { r.hidden = !!(t && !r.dataset.hay.includes(t)) || !!(unit.value && r.dataset.unit !== unit.value); }); };
+        q.addEventListener('input', filter); unit.addEventListener('change', filter);
+        api.el.querySelectorAll('tr[data-hay]').forEach(r => r.addEventListener('click', e => { if (e.target.type !== 'checkbox') { const c = r.querySelector('input'); c.checked = !c.checked; } }));
+      },
+      buttons: [{ label: 'Cancel' }, { label: 'Add to My List', cls: 'btn-primary', onClick: api => {
+        const ids = Array.from(api.el.querySelectorAll('[name="add"]:checked')).map(c => c.value);
+        if (!ids.length) { UI.formError(api.el.querySelector('.modal-body'), 'Check one or more patients to add.'); return false; }
+        Store.setMyList(Store.myList().concat(ids));
+        listTab = 'my';
+        UI.toast(`${ids.length} patient${ids.length > 1 ? 's' : ''} added to My List.`);
+        if (then) then();
+        App.render();
+      } }]
+    });
+  }
+
+  function findPatient(text) {
+    const t = text.trim().toLowerCase();
+    if (!t) return;
+    const hits = Model.allPatients().filter(b => [b.name.last, b.name.first, b.name.first + ' ' + b.name.last, b.name.last + ',' + b.name.first, b.mrn, Model.account(b), b.unit, b.room].join(' | ').toLowerCase().includes(t));
+    const mine = Store.myList();
+    UI.modal({
+      title: `Find Patient — “${text.trim()}”`,
+      wide: true,
+      body: hits.length ? `<table class="grid"><thead><tr><th>Name</th><th>Age/Sex</th><th>DOB</th><th>MRN / Account</th><th>Location</th><th></th></tr></thead><tbody>
+        ${hits.map(b => `<tr><td><strong>${esc(b.name.last)},${esc(b.name.first)}</strong></td><td>${esc(String(b.age).replace(' years', ''))} ${esc(b.sex)}</td><td>${esc(U.fmtDOB(b.dob))}</td><td>${esc(b.mrn)}<br><small>${esc(Model.account(b))}</small></td><td>${esc(Model.location(b))}</td>
+          <td class="nowrap"><a class="btn btn-sm btn-primary" href="#/patient/${esc(b.id)}/summary" data-go>Open Chart</a> ${mine.includes(b.id) ? '<span class="muted small">On My List</span>' : `<button type="button" class="btn btn-sm" data-addone="${esc(b.id)}">Add to My List</button>`}</td></tr>`).join('')}</tbody></table>`
+        : '<p class="empty">No test account matches. Search by last name, first name, MRN, account number, unit, or room.</p>',
+      onOpen(api) {
+        api.el.querySelectorAll('[data-go]').forEach(a => a.addEventListener('click', () => api.close()));
+        api.el.querySelectorAll('[data-addone]').forEach(b => b.addEventListener('click', () => {
+          Store.setMyList(Store.myList().concat(b.dataset.addone));
+          b.outerHTML = '<span class="muted small">Added to My List</span>';
+          App.render();
+        }));
+      },
+      buttons: [{ label: 'Close' }]
+    });
+  }
 
   Screens.census = {
+    selected: () => selected,
     render() {
-      const exp = Screens.experience();
       const s = Store.session();
-      const pts = Model.allPatients().filter(Screens.canSee);
-      const instructor = Store.instructorUnlocked();
-      const levels = [1, 2, 3];
-      if (levelTab == null) levelTab = pts.some(p => p.level === 3) ? 3 : (pts[0] && pts[0].level) || 3;
-      const shown = pts.filter(p => (p.level || 3) === levelTab);
-      const now = Date.now();
-      const rows = shown.map(base => {
-        const p = Model.get(base.id);
-        const doc = Store.doc(p.id);
-        const unacked = Model.unackedOrders(p, doc);
-        const stat = unacked.some(o => /stat/i.test(o.priority || ''));
-        const results = Model.unreviewedResults(p, doc);
-        const allergy = !(p.nkda || !(p.allergies || []).length);
-        const initials = (p.name.first[0] + p.name.last[0]).toUpperCase();
-        return `<tr class="census-row ${selected === p.id ? 'sb-selected' : ''}" data-open="${esc(p.id)}" tabindex="0">
-          <td class="sb-rm">${esc(p.room && p.room !== '—' ? p.room : p.unit)}</td>
-          <td class="sb-pix"><div class="avatar sb-avatar" aria-hidden="true">${esc(initials)}</div></td>
-          <td class="sb-name"><a href="#/patient/${esc(p.id)}/summary" class="sb-link"><strong>${esc(p.name.last)},${esc(p.name.first)}</strong></a>
-            <div>${esc(p.admitDx)}</div><div class="muted">ADM IN · ${esc(p.age.replace(' years', ''))} ${esc(p.sex)} · DOB ${esc(U.fmtDOB(p.dob))}</div></td>
-          <td class="sb-alerts">${allergy ? `<span class="sb-chip sb-red" title="Allergies: ${esc(allergyText(p))}">ALLERGY</span>` : '<span class="sb-chip sb-plain">NKDA</span>'}
-            ${p.codeStatus === 'DNR' ? '<span class="sb-chip sb-purple">DNR</span>' : ''}
-            ${p.isolation && !/^(none|standard)$/i.test(p.isolation) ? `<span class="sb-chip sb-plain">${esc(p.isolation)}</span>` : ''}</td>
-          <td class="${(p.homeMeds || []).length ? 'sb-green' : 'sb-gray'}">${(p.homeMeds || []).length ? 'Confirmed' : 'None'}</td>
-          <td class="sb-list">${lines(Views.worklist.due(p, doc).slice(0, 3))}</td>
-          <td class="sb-list">${lines(nextMeds(p, doc))}</td>
-          <td class="${stat ? 'sb-redcell' : unacked.length ? 'sb-newcell' : ''}" title="${unacked.length ? unacked.length + ' order(s) to acknowledge' : 'No new orders to acknowledge'}">${unacked.length ? `${stat ? 'Stat' : 'New'} (${unacked.length})` : ''}</td>
-          <td class="sb-results">${results.map(r => { const crit = (r.results || []).some(x => /\*/.test(Model.labFlag(x))); return `<div class="sb-res ${crit ? 'sb-res-crit' : ''}">${esc(r.panel || r.study)}</div>`; }).join('')}</td>
-        </tr>`;
-      }).join('');
-      const title = `${Screens.experienceLabel(exp)} - ${s.cred}*`;
-      return `<div class="sb">
-        <div class="sb-titlebar"><span class="sb-e" aria-hidden="true">E</span><h1>PCS Status Board</h1></div>
-        <div class="sb-band"><span>Dept: <b>Patient Care</b></span><span>Site: <b>${esc(C.hospitalName)}</b></span><span>Level: <b>${levelTab}</b></span></div>
-        <div class="sb-body">
-          <div class="sb-main">
-            <div class="sb-head"><strong>${esc(title)}</strong><div>${shown.length} patient${shown.length === 1 ? '' : 's'} as of ${U.fmtDT(now)}</div></div>
-            <div class="scroll-x">${shown.length ? `<table class="grid census sb-table">
-              <thead><tr><th>Rm/ Bed</th><th>Pix</th><th>Name ▾<br>Diagnosis<br>Reg Status</th><th>Alerts</th><th>Home Meds</th><th>Interventions</th><th>Next Meds</th><th>Orders</th><th>New Results</th></tr></thead>
-              <tbody>${rows}</tbody></table>` : `<p class="empty sb-empty">No Level ${levelTab} patients have been added for ${esc(Screens.experienceLabel(exp))} yet.</p>`}</div>
-            <div class="sb-foot">
-              <button class="btn btn-sm" data-action="refresh">Refresh</button>
-              <button class="btn btn-sm" data-action="open" ${selected && shown.some(p => p.id === selected) ? '' : 'disabled'}>Open Chart</button>
-              <span class="muted small">Click a patient to select, double-click (or Open Chart) to open. Always verify two identifiers.${instructor ? '' : ' To change your sim experience, Suspend and sign in again.'}</span>
-            </div>
+      const all = Model.allPatients();
+      const mine = Store.myList().filter(id => all.some(b => b.id === id));
+      const faculty = Screens.mode() === 'faculty';
+      if (listTab == null || !faculty) listTab = 'my';
+      const shown = all.filter(b => inList(listTab, b));
+      if (selected && !shown.some(b => b.id === selected)) selected = null;
+      const tab = (t, label, n) => `<button type="button" class="tk-tab ${listTab === t ? 'on' : ''}" data-list="${esc(t)}">${t !== 'my' ? '▾ ' : ''}${esc(label)} <span class="tk-n">${n}</span></button>`;
+      return `<div class="tk">
+        <div class="tk-top">
+          <div class="tk-burger-wrap"><button type="button" class="tk-burger" data-action="burger" aria-haspopup="true" aria-expanded="false" title="List menu" aria-label="List menu">☰</button>
+            <div class="tb-menu tk-burger-menu" hidden role="menu">
+              <a href="#" role="menuitem" data-action="add">Add Patients…</a>
+              <a href="#" role="menuitem" data-action="remove" class="${selected && listTab === 'my' ? '' : 'tk-off'}">Remove Selected Patient</a>
+              <a href="#" role="menuitem" data-action="clear" class="${mine.length ? '' : 'tk-off'}">Clear My List</a>
+              <a href="#" role="menuitem" data-action="refresh">Refresh</a>
+              ${faculty ? `<div class="ml-menu-h">Faculty</div><a href="#" role="menuitem" data-list="${listTab === 'all' ? 'my' : 'all'}">${listTab === 'all' ? 'Back to My List' : `All Test Accounts (${all.length})`}</a>` : ''}
+            </div></div>
+          <h1 class="tk-user">${esc(s.name)}</h1>
+          <div class="tk-find">
+            <button type="button" class="tk-refresh" data-action="refresh" title="Refresh" aria-label="Refresh">↻</button>
+            <form class="tk-search" data-action="find"><input name="find" placeholder="Find Patient" autocomplete="off" aria-label="Find Patient"><button type="submit" aria-label="Search">🔍</button></form>
           </div>
-          <nav class="sb-side" aria-label="Status board menu">
-            <div class="sb-side-h">Lists</div>
-            ${levels.map(l => `<a href="#" class="${l === levelTab ? 'on' : ''}" data-level="${l}">Level ${l} Patients</a>`).join('')}
-            <div class="sb-sep"></div>
-            <a href="#" class="on">Status Board</a>
-            <a href="#" data-action="open">Open Chart</a>
-            ${instructor ? `<div class="sb-sep"></div><label class="sb-side-h">Instructor view
-              <select data-action="experience">${C.experiences.map(x => `<option value="${esc(x.id)}" ${x.id === exp ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
-              <option value="all" ${exp === 'all' ? 'selected' : ''}>All experiences</option></select></label>
-              <a href="#/instructor">Instructor Tools</a>` : ''}
-          </nav>
         </div>
+        <div class="tk-tabs">
+          ${tab('my', 'My List', mine.length)}
+          ${listTab === 'all' ? tab('all', 'All Test Accounts', all.length) : ''}
+          <div class="tk-actions">
+            <button type="button" class="tk-btn" data-action="open" ${selected ? '' : 'disabled'}>Open Patient Summary</button>
+            <button type="button" class="tk-btn" data-action="handoff" ${selected ? '' : 'disabled'}>Open Hand Off</button>
+            ${listTab === 'my' ? '' : `<button type="button" class="tk-btn" data-action="addsel" ${selected && !mine.includes(selected) ? '' : 'disabled'}>Add to My List</button>`}
+          </div>
+        </div>
+        <div class="tk-head"><span></span><span></span><span>Name<br>Age/Sex<br>Unit · Room</span><span>Reason for Visit<br>Attending<br>Admitted</span><span>Alerts<br>Home Meds</span><span>Code Status<br>Allergies<br>Isolation</span><span></span><span>Vital Signs<br>Orders/Results</span></div>
+        <div class="tk-list">${shown.length ? shown.map(row).join('')
+          : listTab === 'my' ? `<div class="empty tk-empty">No patients on your list. Select the <strong>☰</strong> menu next to your name, then <strong>Add Patients…</strong></div>`
+          : '<div class="empty tk-empty">No test accounts on this list.</div>'}</div>
+        <p class="muted small tk-tip">Select a patient, then use Chart, Document, or Orders above, or double-click to open the chart. ▸ shows more. Always verify two identifiers.</p>
       </div>`;
     },
     bind(root) {
-      const sel = root.querySelector('[data-action="experience"]');
-      if (sel) sel.addEventListener('change', e => {
-        const sess = Store.session(); sess.viewExperience = e.target.value; Store.setSession(sess); levelTab = null; selected = null; App.render();
+      const go = (id, tab) => { if (id) location.hash = `#/patient/${id}/${tab || 'summary'}`; };
+      const act = (name, fn) => root.querySelectorAll(`[data-action="${name}"]`).forEach(b => b.addEventListener('click', e => { e.preventDefault(); fn(b); }));
+      const burger = root.querySelector('[data-action="burger"]'), bmenu = root.querySelector('.tk-burger-menu');
+      burger.addEventListener('click', e => {
+        e.preventDefault(); e.stopPropagation();
+        bmenu.hidden = !bmenu.hidden; burger.setAttribute('aria-expanded', String(!bmenu.hidden));
+        if (!bmenu.hidden) setTimeout(() => document.addEventListener('click', () => { bmenu.hidden = true; burger.setAttribute('aria-expanded', 'false'); }, { once: true }), 0);
       });
-      root.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); levelTab = Number(b.dataset.level); selected = null; App.render(); }));
-      root.querySelector('[data-action="refresh"]').addEventListener('click', () => App.render());
-      const open = id => { if (id) location.hash = `#/patient/${id}/summary`; };
-      root.querySelectorAll('[data-action="open"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); open(selected); }));
+      act('add', () => addPatients());
+      act('clear', () => { if (!Store.myList().length) return; UI.confirm('Clear My List', 'Remove every patient from your list? Their charts are not changed.', () => { Store.setMyList([]); selected = null; App.render(); }, 'Clear'); });
+      act('refresh', () => App.render());
+      act('open', () => go(selected));
+      act('handoff', () => go(selected, 'report'));
+      act('remove', () => {
+        if (!selected || listTab !== 'my') { UI.toast('Select a patient on your list first.', 'warn'); return; }
+        Store.setMyList(Store.myList().filter(x => x !== selected)); selected = null; App.render();
+      });
+      act('addsel', () => { Store.setMyList(Store.myList().concat(selected)); UI.toast('Added to My List.'); App.render(); });
+      root.querySelectorAll('[data-list]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); listTab = b.dataset.list; selected = null; App.render(); }));
+      root.querySelector('[data-action="find"]').addEventListener('submit', e => { e.preventDefault(); findPatient(e.target.find.value); });
+      root.querySelectorAll('[data-exp]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); expanded[b.dataset.exp] = !expanded[b.dataset.exp]; App.render(); }));
       root.querySelectorAll('[data-open]').forEach(r => {
         r.addEventListener('click', e => {
-          if (e.target.closest('a')) return;
+          if (e.target.closest('a, button')) return;
           selected = r.dataset.open;
-          root.querySelectorAll('.census-row').forEach(x => x.classList.toggle('sb-selected', x === r));
-          root.querySelectorAll('button[data-action="open"]').forEach(b => { b.disabled = false; });
+          App.render();
         });
-        r.addEventListener('dblclick', () => open(r.dataset.open));
-        r.addEventListener('keydown', e => { if (e.key === 'Enter') open(r.dataset.open); });
+        r.addEventListener('dblclick', e => { if (!e.target.closest('a, button')) go(r.dataset.open); });
+        r.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === r) go(r.dataset.open); });
       });
     }
   };
@@ -212,7 +314,7 @@
         const count = Store.SECTIONS.reduce((n, s) => n + doc[s].length, 0);
         const custom = Store.customPatients().some(c => c.id === p.id);
         return `<section class="panel">
-          <header class="panel-head"><h2>Level ${esc(p.level || 3)} · ${esc(p.name.last)}, ${esc(p.name.first)} <span class="muted">— ${esc(p.admitDx)} · ${esc((p.experiences || []).map(Screens.experienceLabel).join(', ') || 'No experience assigned')}</span></h2>
+          <header class="panel-head"><h2>${esc(p.name.last)}, ${esc(p.name.first)} <span class="muted">— ${esc(p.admitDx)} · ${esc(Model.location(p))}</span></h2>
             <div class="panel-actions">
               <a class="btn btn-sm" href="#/patient/${esc(p.id)}/summary">Open Chart</a>
               <a class="btn btn-sm" href="#/patient/${esc(p.id)}/report">Chart Report</a>
