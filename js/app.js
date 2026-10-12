@@ -126,8 +126,9 @@
   }
 
   const HELP = `<ul class="help-list">
+      <li><strong>Starting up</strong> — on the desktop, double-click (or tap) <strong>MEDITECH Expanse</strong>, sign in, then select <strong>Launch New Session</strong>. Signing out returns to the desktop.</li>
       <li><strong>Return To (green E)</strong> — go back to the Patient Care Status Board or to any chart you have open. ✕ closes one chart; Close All closes them all.</li>
-      <li><strong>Status board</strong> — the ☰ box next to your name adds test accounts to <em>My List</em>. Unit tabs list every test account on that unit. ▸ on a row shows more about the patient. Select a row, then use Chart, Document, or Orders, or double-click it.</li>
+      <li><strong>Status board</strong> — your list starts empty. Select the <strong>☰</strong> menu next to your name, then <em>Add Patients…</em> (filter by name, MRN, room, or unit). The same menu removes the selected patient or clears your list. ▸ on a row shows more about the patient. Select a row, then use Chart, Document, or Orders, or double-click it.</li>
       <li><strong>Find Patient</strong> — search all test accounts by name, MRN, account number, unit, or room.</li>
       <li><strong>Chart</strong> — folder tabs on the left; patient summary on the right. <em>Search Patient's Chart</em> searches every part of the chart (notes, orders, medications, results, vitals, history, allergies, documents).</li>
       <li><strong>Document ▾</strong> — Worklist, MAR, TAR, Plan of Care, Write Note. On the MAR scan the wristband, scan every medication, then Save and Document.</li>
@@ -204,9 +205,18 @@
       const r = route();
       const s = Store.session();
       App.current = null;
+      // Start-up: desktop → MEDITECH sign-in → Launch New Session → status board.
       if (!Store.session()) {
-        app.innerHTML = Screens.login.render();
-        Screens.login.bind(app);
+        const screen = r.page === 'signin' ? Screens.login : Screens.desktop;
+        app.innerHTML = screen.render();
+        screen.bind(app);
+        document.title = r.page === 'signin' ? 'MEDITECH Expanse — Sign In' : 'Workstation';
+        return;
+      }
+      if (!Store.session().launched) {
+        app.innerHTML = Screens.launch.render();
+        Screens.launch.bind(app);
+        document.title = 'MEDITECH Expanse';
         return;
       }
       if (r.page === 'patient' && r.pid) {

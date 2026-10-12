@@ -46,11 +46,12 @@
   /* ---------------- Sign in ---------------- */
   Screens.login = {
     render() {
-      return `<div class="login-wrap">
-        <form class="login-card" autocomplete="off">
-          <div class="login-brand"><div class="logo-mark" aria-hidden="true">✚</div><div><div class="brand-1">${esc(C.hospitalName)}</div><div class="brand-2">${esc(C.systemName)} · Simulation Electronic Health Record</div></div></div>
+      return `<div class="xp">
+        <div class="xp-logo"><div class="xp-brand">MEDITECH</div><div class="xp-name">E X P A N S E</div></div>
+        <form class="login-card xp-card" autocomplete="off">
+          <div class="xp-card-h">${esc(C.hospitalName)} Test — Sign In</div>
           <div class="sim-warning">SIMULATION ONLY — Do not enter real patient information.</div>
-          <label class="field"><span>Full name</span><input name="name" required autofocus placeholder="First Last"></label>
+          <label class="field"><span>User name</span><input name="name" required autofocus placeholder="First Last"></label>
           <label class="field"><span>Role</span><select name="cred">
             <option value="SN">Student Nurse (SN)</option><option value="RN">Registered Nurse (RN)</option>
             <option value="Instructor">Instructor</option></select></label>
@@ -61,7 +62,7 @@
           <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Fall cohort — Group A"></label>
           <button class="btn btn-primary btn-block" type="submit">Sign In</button>
           <p class="muted small">Your name is attached to every entry as your electronic signature.</p>
-          <p class="muted small">Version ${U.esc(C.version || '')}</p>
+          <p class="muted small">Version ${U.esc(C.version || '')} · <a href="#/" data-action="desktop">Back to desktop</a></p>
         </form></div>`;
     },
     bind(root) {
@@ -69,8 +70,8 @@
         e.preventDefault();
         const v = U.formValues(e.target);
         if (!v.name) return;
-        Store.setSession({ name: v.name, cred: v.cred, group: v.group, observer: v.mode === 'observer', signedIn: Date.now() });
-        location.hash = '#/census';
+        Store.setSession({ name: v.name, cred: v.cred, group: v.group, observer: v.mode === 'observer', signedIn: Date.now(), launched: false });
+        location.hash = '#/launch';
         App.render();
       });
     }
@@ -164,14 +165,16 @@
     UI.modal({
       title: 'Add Patients to My List',
       wide: true,
-      body: `<label class="field"><span>Search test accounts (name, MRN, account, unit, room)</span><input name="q" autocomplete="off" placeholder="Type to filter"></label>
+      body: `<div class="form-grid"><label class="field"><span>Search test accounts (name, MRN, account, room)</span><input name="q" autocomplete="off" placeholder="Type to filter"></label>
+        <label class="field"><span>Unit</span><select name="unit"><option value="">All units</option>${units().map(u => `<option>${esc(u)}</option>`).join('')}</select></label></div>
         ${bank.length ? `<table class="grid tk-bank"><thead><tr><th></th><th>Name</th><th>Age/Sex</th><th>MRN / Account</th><th>Unit / Room</th><th>Reason for visit</th></tr></thead><tbody>
-        ${bank.map(b => `<tr data-hay="${esc([b.name.last, b.name.first, b.mrn, Model.account(b), b.unit, b.room, b.admitDx].join(' ').toLowerCase())}"><td><input type="checkbox" name="add" value="${esc(b.id)}" aria-label="Add ${esc(b.name.last)}"></td>
+        ${bank.map(b => `<tr data-unit="${esc(b.unit)}" data-hay="${esc([b.name.last, b.name.first, b.mrn, Model.account(b), b.unit, b.room, b.admitDx].join(' ').toLowerCase())}"><td><input type="checkbox" name="add" value="${esc(b.id)}" aria-label="Add ${esc(b.name.last)}"></td>
           <td><strong>${esc(b.name.last)},${esc(b.name.first)}</strong></td><td>${esc(String(b.age).replace(' years', ''))} ${esc(b.sex)}</td><td>${esc(b.mrn)}<br><small>${esc(Model.account(b))}</small></td><td>${esc(Model.location(b))}</td><td>${esc(b.admitDx)}</td></tr>`).join('')}</tbody></table>`
           : '<p class="empty">Every test account is already on your list.</p>'}`,
       onOpen(api) {
-        const q = api.el.querySelector('[name="q"]');
-        q.addEventListener('input', () => { const t = q.value.trim().toLowerCase(); api.el.querySelectorAll('tr[data-hay]').forEach(r => { r.hidden = t && !r.dataset.hay.includes(t); }); });
+        const q = api.el.querySelector('[name="q"]'), unit = api.el.querySelector('[name="unit"]');
+        const filter = () => { const t = q.value.trim().toLowerCase(); api.el.querySelectorAll('tr[data-hay]').forEach(r => { r.hidden = !!(t && !r.dataset.hay.includes(t)) || !!(unit.value && r.dataset.unit !== unit.value); }); };
+        q.addEventListener('input', filter); unit.addEventListener('change', filter);
         api.el.querySelectorAll('tr[data-hay]').forEach(r => r.addEventListener('click', e => { if (e.target.type !== 'checkbox') { const c = r.querySelector('input'); c.checked = !c.checked; } }));
       },
       buttons: [{ label: 'Cancel' }, { label: 'Add to My List', cls: 'btn-primary', onClick: api => {
@@ -216,15 +219,21 @@
       const s = Store.session();
       const all = Model.allPatients();
       const mine = Store.myList().filter(id => all.some(b => b.id === id));
-      if (listTab == null) listTab = mine.length ? 'my' : 'all';
-      if (listTab.startsWith('unit:') && !units().includes(listTab.slice(5))) listTab = 'all';
+      const faculty = Screens.mode() === 'faculty';
+      if (listTab == null || !faculty) listTab = 'my';
       const shown = all.filter(b => inList(listTab, b));
       if (selected && !shown.some(b => b.id === selected)) selected = null;
-      const unitTab = listTab.startsWith('unit:') ? listTab : null;
       const tab = (t, label, n) => `<button type="button" class="tk-tab ${listTab === t ? 'on' : ''}" data-list="${esc(t)}">${t !== 'my' ? '▾ ' : ''}${esc(label)} <span class="tk-n">${n}</span></button>`;
       return `<div class="tk">
         <div class="tk-top">
-          <button type="button" class="tk-burger" data-action="add" title="Add patients to My List" aria-label="Add patients to My List">☰</button>
+          <div class="tk-burger-wrap"><button type="button" class="tk-burger" data-action="burger" aria-haspopup="true" aria-expanded="false" title="List menu" aria-label="List menu">☰</button>
+            <div class="tb-menu tk-burger-menu" hidden role="menu">
+              <a href="#" role="menuitem" data-action="add">Add Patients…</a>
+              <a href="#" role="menuitem" data-action="remove" class="${selected && listTab === 'my' ? '' : 'tk-off'}">Remove Selected Patient</a>
+              <a href="#" role="menuitem" data-action="clear" class="${mine.length ? '' : 'tk-off'}">Clear My List</a>
+              <a href="#" role="menuitem" data-action="refresh">Refresh</a>
+              ${faculty ? `<div class="ml-menu-h">Faculty</div><a href="#" role="menuitem" data-list="${listTab === 'all' ? 'my' : 'all'}">${listTab === 'all' ? 'Back to My List' : `All Test Accounts (${all.length})`}</a>` : ''}
+            </div></div>
           <h1 class="tk-user">${esc(s.name)}</h1>
           <div class="tk-find">
             <button type="button" class="tk-refresh" data-action="refresh" title="Refresh" aria-label="Refresh">↻</button>
@@ -233,23 +242,16 @@
         </div>
         <div class="tk-tabs">
           ${tab('my', 'My List', mine.length)}
-          ${unitTab ? tab(unitTab, short(listName(unitTab)), all.filter(b => inList(unitTab, b)).length) : ''}
-          <div class="tk-more"><button type="button" class="tk-tab ${listTab === 'all' ? 'on' : ''}" data-action="more" aria-haspopup="true">▾ ${listTab === 'all' ? 'All Test Accounts' : 'More Lists'}</button>
-            <div class="tb-menu tk-more-menu" hidden role="menu">
-              <a href="#" role="menuitem" data-list="all">All Test Accounts (${all.length})</a>
-              <div class="ml-menu-h">Unit lists</div>
-              ${units().map(u => `<a href="#" role="menuitem" data-list="unit:${esc(u)}">${esc(u)} (${all.filter(b => b.unit === u).length})</a>`).join('')}
-            </div></div>
+          ${listTab === 'all' ? tab('all', 'All Test Accounts', all.length) : ''}
           <div class="tk-actions">
             <button type="button" class="tk-btn" data-action="open" ${selected ? '' : 'disabled'}>Open Patient Summary</button>
             <button type="button" class="tk-btn" data-action="handoff" ${selected ? '' : 'disabled'}>Open Hand Off</button>
-            ${listTab === 'my' ? `<button type="button" class="tk-btn" data-action="remove" ${selected ? '' : 'disabled'}>Remove from My List</button>`
-              : `<button type="button" class="tk-btn" data-action="addsel" ${selected && !mine.includes(selected) ? '' : 'disabled'}>Add to My List</button>`}
+            ${listTab === 'my' ? '' : `<button type="button" class="tk-btn" data-action="addsel" ${selected && !mine.includes(selected) ? '' : 'disabled'}>Add to My List</button>`}
           </div>
         </div>
         <div class="tk-head"><span></span><span></span><span>Name<br>Age/Sex<br>Unit · Room</span><span>Reason for Visit<br>Attending<br>Admitted</span><span>Alerts<br>Home Meds</span><span>Code Status<br>Allergies<br>Isolation</span><span></span><span>Vital Signs<br>Orders/Results</span></div>
         <div class="tk-list">${shown.length ? shown.map(row).join('')
-          : listTab === 'my' ? `<div class="empty tk-empty">My List is empty. Select the <strong>☰</strong> box next to your name to add test accounts, or open <strong>More Lists</strong>.</div>`
+          : listTab === 'my' ? `<div class="empty tk-empty">No patients on your list. Select the <strong>☰</strong> menu next to your name, then <strong>Add Patients…</strong></div>`
           : '<div class="empty tk-empty">No test accounts on this list.</div>'}</div>
         <p class="muted small tk-tip">Select a patient, then use Chart, Document, or Orders above, or double-click to open the chart. ▸ shows more. Always verify two identifiers.</p>
       </div>`;
@@ -257,14 +259,22 @@
     bind(root) {
       const go = (id, tab) => { if (id) location.hash = `#/patient/${id}/${tab || 'summary'}`; };
       const act = (name, fn) => root.querySelectorAll(`[data-action="${name}"]`).forEach(b => b.addEventListener('click', e => { e.preventDefault(); fn(b); }));
+      const burger = root.querySelector('[data-action="burger"]'), bmenu = root.querySelector('.tk-burger-menu');
+      burger.addEventListener('click', e => {
+        e.preventDefault(); e.stopPropagation();
+        bmenu.hidden = !bmenu.hidden; burger.setAttribute('aria-expanded', String(!bmenu.hidden));
+        if (!bmenu.hidden) setTimeout(() => document.addEventListener('click', () => { bmenu.hidden = true; burger.setAttribute('aria-expanded', 'false'); }, { once: true }), 0);
+      });
       act('add', () => addPatients());
+      act('clear', () => { if (!Store.myList().length) return; UI.confirm('Clear My List', 'Remove every patient from your list? Their charts are not changed.', () => { Store.setMyList([]); selected = null; App.render(); }, 'Clear'); });
       act('refresh', () => App.render());
       act('open', () => go(selected));
       act('handoff', () => go(selected, 'report'));
-      act('remove', () => { Store.setMyList(Store.myList().filter(x => x !== selected)); selected = null; App.render(); });
+      act('remove', () => {
+        if (!selected || listTab !== 'my') { UI.toast('Select a patient on your list first.', 'warn'); return; }
+        Store.setMyList(Store.myList().filter(x => x !== selected)); selected = null; App.render();
+      });
       act('addsel', () => { Store.setMyList(Store.myList().concat(selected)); UI.toast('Added to My List.'); App.render(); });
-      const more = root.querySelector('[data-action="more"]'), menu = root.querySelector('.tk-more-menu');
-      more.addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; if (!menu.hidden) setTimeout(() => document.addEventListener('click', () => { menu.hidden = true; }, { once: true }), 0); });
       root.querySelectorAll('[data-list]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); listTab = b.dataset.list; selected = null; App.render(); }));
       root.querySelector('[data-action="find"]').addEventListener('submit', e => { e.preventDefault(); findPatient(e.target.find.value); });
       root.querySelectorAll('[data-exp]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); expanded[b.dataset.exp] = !expanded[b.dataset.exp]; App.render(); }));
