@@ -1,0 +1,845 @@
+/*
+ * ATU Simulation Hospital — simulation patients
+ * Source: Notion "Level 3 ATU Simulation Hospital" charts.
+ *
+ * HOW TIMES WORK
+ *   Each patient has a scenarioStart clock time (e.g. '10:00'). When the
+ *   scenario starts, that patient's chart clock is set to that time and runs
+ *   in real time from there. Anything in the chart can be timed with:
+ *     time: 'HH:MM'          a clock time on the scenario day
+ *     day:  -1               optional: days before (-) or after (+) that day
+ *     at:   -30              OR minutes relative to scenario start
+ *   Items inside an event (released by the instructor during the scenario)
+ *   use "at" = minutes after the moment the event is released (default 0).
+ *
+ * See docs/ADDING-PATIENTS.md for every field.
+ */
+window.SIM_PATIENTS = [
+
+  /* ------------------------------------------------------------------ */
+  /* LEVEL 3 — MED-SURG: Vincent Brody (COPD exacerbation)               */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'brody',
+    level: 3,
+    experiences: ['advms'],
+    name: { first: 'Vincent', last: 'Brody' },
+    mrn: 'ATU-L3-0628', // not listed in Notion — placeholder for wristband scanning
+    dob: '1959-06-28',
+    age: '67 years',
+    sex: 'M',
+    unit: 'Medical-Surgical Unit',
+    room: '—',
+    service: 'Medicine',
+    attending: 'Dr. Janet Jones',
+    admitted: { time: '11:00' },
+    scenarioStart: '12:00',
+    admitDx: 'COPD exacerbation',
+    codeStatus: 'Full Code',
+    isolation: 'None',
+    nkda: true,
+    allergies: [],
+    heightCm: null,
+    weightKg: null,
+    flags: ['SpO2 goal 88–92%'],
+    vitalRanges: { spo2: [88, 92] },
+    assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse'],
+    emergencyContact: 'Wife — phone on file',
+    demographics: {
+      'Marital status': 'Married',
+      'Primary language': 'English',
+      Race: 'African American',
+      Ethnicity: 'Non-Hispanic',
+      Occupation: 'Retired businessman',
+      Education: 'College degree',
+      Insurance: 'Self pay',
+      'Cultural considerations': 'None'
+    },
+    hpi: '67-year-old African American male with a 10-year history of COPD and a 50-year history of smoking 2 packs per day, admitted directly from his primary care provider\'s office earlier today. He was short of breath with a decreased pulse oximetry reading at the office and was sent to the hospital for admission.',
+    pmh: ['COPD — 10 years'],
+    psh: ['None'],
+    familyHx: ['Heart disease — brother, father'],
+    socialHx: ['Married; lives with wife; 3 grown children', 'Current smoker: 2 packs per day x 50 years', 'Alcohol: denies', 'Drugs: denies'],
+    homeMeds: [{ name: 'Ipratropium inhaler', dose: '1 puff', route: 'Inhaled', freq: 'BID' }],
+    ros: [
+      ['General', 'Alert, pleasant man, A&O x4'],
+      ['Respiratory', 'Productive cough with shortness of breath; barrel chest; clubbing noted to fingers; wheezes throughout'],
+      ['Cardiac', 'Regular rate and rhythm; no murmurs or gallops; no peripheral edema'],
+      ['GI', 'No nausea, vomiting, diarrhea'],
+      ['GU', 'No dysuria or urinary complaints']
+    ],
+    orders: [
+      { id: 'bro-o1', cat: 'Admission', text: 'Admit to Medical-Surgical', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o2', cat: 'Admission', text: 'Diagnosis: COPD exacerbation', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o3', cat: 'Code Status', text: 'Full Code', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o4', cat: 'Diet', text: 'Regular diet', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o5', cat: 'Activity', text: 'Up as tolerated', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o6', cat: 'Nursing', text: 'Continuous SpO2 monitoring', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o7', cat: 'Nursing', text: 'Vital signs every 5 minutes x 3, every 15 minutes x 3, then every 4 hours if stable', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o8', cat: 'Respiratory', text: 'Oxygen per nasal cannula @ 2 L/min; titrate O2 for target SpO2 range between 88–92%', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o9', cat: 'Nursing', text: 'I & O every 4 hours', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o10', cat: 'Lab', text: 'CBC, BMP, BNP, Troponin, CK-MB, ABG', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o11', cat: 'Imaging', text: 'Portable chest X-ray (PA)', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o12', cat: 'IV Fluids', text: 'D5 1/2 NS with 20 mEq KCl @ 50 mL/hr', time: '11:00', by: 'Dr. Janet Jones' },
+      { id: 'bro-o13', cat: 'Respiratory', text: 'Incentive spirometry every 2 hours while awake', time: '11:00', by: 'Dr. Janet Jones' }
+    ],
+    meds: [
+      { id: 'bro-ivf', name: 'D5 1/2 NS with 20 mEq KCl', dose: '50 mL/hr', route: 'IV', freq: 'Continuous', type: 'continuous', rate: '50 mL/hr' },
+      { id: 'bro-albuterol', name: 'Albuterol 2.5 mg in 3 mL NS', dose: '2.5 mg', route: 'Nebulizer', freq: 'Every 4 hours — per RT', type: 'scheduled', preAssess: ['HR', 'RR', 'SpO2'], doses: [{ time: '12:00' }, { time: '16:00' }, { time: '20:00' }] },
+      { id: 'bro-ipratropium', name: 'Ipratropium', dose: '0.5 mg', route: 'Nebulizer', freq: 'Every 8 hours — per RT', type: 'scheduled', doses: [{ time: '12:00' }, { time: '20:00' }] },
+      { id: 'bro-prednisone', name: 'Prednisone', dose: '40 mg', route: 'PO', freq: 'Daily x 5 days', type: 'scheduled', instructions: 'Scheduled daily at 0900. First dose due on admission.', doses: [{ time: '12:00', extra: true }, { time: '09:00', day: 1 }] }
+    ],
+    vitals: [
+      { time: '11:00', temp: 99.5, tempRoute: 'Oral', hr: 92, rr: 28, sbp: 142, dbp: 84, spo2: 83, o2: 'Room air', pain: 0, note: 'Admit', by: 'Admitting RN' },
+      { time: '11:05', temp: 99.5, tempRoute: 'Oral', hr: 90, rr: 24, sbp: 145, dbp: 90, spo2: 90, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'Admitting RN' },
+      { time: '11:10', temp: 99.5, tempRoute: 'Oral', hr: 98, rr: 20, sbp: 135, dbp: 80, spo2: 92, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'Admitting RN' },
+      { time: '11:15', temp: 99.5, tempRoute: 'Oral', hr: 96, rr: 22, sbp: 137, dbp: 79, spo2: 92, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'Admitting RN' },
+      { time: '11:25', temp: 99.5, tempRoute: 'Oral', hr: 98, rr: 20, sbp: 133, dbp: 76, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'Admitting RN' },
+      { time: '11:40', temp: 99.5, tempRoute: 'Oral', hr: 95, rr: 18, sbp: 135, dbp: 81, spo2: 92, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'Admitting RN' },
+      { time: '11:55', temp: 99.5, tempRoute: 'Oral', hr: 90, rr: 18, sbp: 134, dbp: 82, spo2: 92, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'Admitting RN' }
+    ],
+    labs: [],
+    labsPending: 'Admission labs (CBC, BMP, BNP, troponin, CK-MB, ABG) are in the Notion PDF "Brody_Labs.pdf" and have not been entered here yet.',
+    imaging: [],
+    notes: [
+      { id: 'bro-n1', type: 'Progress Note', author: 'Dr. Janet Jones', time: '11:15', text: 'CHIEF COMPLAINT: Shortness of breath.\n\nHPI: 67-year-old African American male with a 10-year history of COPD and a 50-year history of 2 pack per day smoking, admitted after being seen at his primary care office earlier today. He was having shortness of breath and decreased pulse oximetry at the provider\'s office and was sent to the hospital for admission.\n\nREVIEW OF SYSTEMS / ASSESSMENT:\nGeneral: Alert, pleasant man, AOx4.\nRespiratory: Productive cough with shortness of breath, barrel chest, clubbing noted to fingers, wheezes throughout.\nCardiac: Regular rate and rhythm, no murmurs or gallops. No peripheral edema.\nGI: No nausea, vomiting, diarrhea.\nGU: No dysuria or urinary complaints.\n\nLABS: CBC, BMP, BNP, troponin pending.' }
+    ],
+    io: [],
+    events: []
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* LEVEL 3 — ORTHO / ICU: Ruth Livingston                              */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'livingston',
+    level: 3,
+    experiences: ['icu'],
+    name: { first: 'Ruth', last: 'Livingston' },
+    mrn: 'PCS10800', // from "Ruth_Livingston_lab2.pdf"
+    dob: '1945-10-08',
+    age: '80 years',
+    sex: 'F',
+    unit: 'Orthopedic Med-Surg Unit',
+    room: '—',
+    service: 'Orthopedics',
+    attending: 'Dr. Marcus',
+    admitted: { time: '08:00', day: -6 },
+    scenarioStart: '09:30',
+    admitDx: 'Post-op ORIF right hip (POD 5) — right femoral neck fracture after fall at home',
+    codeStatus: 'Full Code',
+    advanceDirective: 'None',
+    isolation: 'None',
+    nkda: true,
+    allergies: [],
+    heightCm: 160,
+    weightKg: 54,
+    bloodType: 'A+', // type & crossmatch on the lab report; checked on the TAR
+    // From the Notion "ICU Orders" norepinephrine order. Opened from the P on the order once the ICU transfer is released.
+    protocols: {
+      norepi: {
+        title: 'Norepinephrine (Levophed) Titration Protocol',
+        items: [
+          ['Start criteria', 'After the 500 mL NS bolus, start only if MAP < 65 or SBP < 100'],
+          ['Starting dose', 'Norepinephrine 2 mcg/min continuous IV'],
+          ['Titration', 'Titrate by 2 mcg/min every 5 minutes to maintain MAP > 65 or SBP > 100'],
+          ['Maximum dose', '30 mcg/min'],
+          ['Monitoring', 'Continuous ECG and pulse oximetry; vital signs every 15 minutes and PRN'],
+          ['Notify provider', 'SBP < 100 or > 160, HR < 55 or > 110, SpO₂ < 90%, or goal not met at maximum dose'],
+          ['Concentration', 'Per pharmacy label — calculate mL/hr from the bag concentration']
+        ],
+        tableTitle: 'Titration Protocol — NOREPINEPHRINE TITRATION',
+        table: { head: ['Condition', 'Dose/Route', 'Instruction'], rows: [
+          ['DOSE RANGE', '2–30 MCG/MIN IV', 'START 2 MCG/MIN AFTER NS BOLUS IF MAP < 65 OR SBP < 100'],
+          ['TITRATION', '2 MCG/MIN', 'EVERY 5 MINS'],
+          ['PARAMETERS', '', 'MAINTAIN MAP > 65 OR SBP > 100'],
+          ['MAXIMUM', '30 MCG/MIN', 'DO NOT EXCEED — NOTIFY PROVIDER IF GOAL NOT MET']
+        ] },
+        maxDose: 30, doseUnit: 'mcg/min',
+        signedBy: 'Dr. Marcus'
+      }
+    },
+    flags: ['Fall Risk'],
+    assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse', 'gcs'],
+    emergencyContact: 'Daughter — phone on file',
+    demographics: {
+      'Marital status': 'Widow',
+      'Primary language': 'English',
+      Race: 'White',
+      Ethnicity: 'Non-Hispanic',
+      Occupation: 'Retired',
+      Education: 'Master of Economics',
+      Insurance: 'Self pay',
+      'Cultural considerations': 'None'
+    },
+    hpi: '80-year-old female admitted 6 days ago through the emergency department for a right femoral neck fracture after falling at home. She is now 5 days post-op from an open reduction internal fixation (ORIF) of the right hip on the orthopedic-surgical unit.',
+    pmh: ['Osteoporosis'],
+    psh: ['ORIF right hip — this admission (POD 5)'],
+    familyHx: ['Genetic disorders: none', 'Birth defects: none', 'Other relevant history: none'],
+    socialHx: ['Lives with daughter and son-in-law', 'Denies drug, alcohol, and nicotine use'],
+    homeMeds: [{ name: 'Alendronate sodium with calcium', dose: '', route: 'PO', freq: 'As prescribed' }],
+    orders: [
+      { id: 'liv-o1', cat: 'Admission', text: 'Admit to Medical-Surgical Orthopedic Unit', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o2', cat: 'Admission', text: 'Diagnosis: Post-op open reduction internal fixation (ORIF)', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o3', cat: 'Code Status', text: 'Full Code', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o4', cat: 'Diet', text: 'Regular diet', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o5', cat: 'Activity', text: 'Up with assistance; place SCDs when in bed', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o6', cat: 'Consult', text: 'PT: full weight bearing; gait training with walker', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o7', cat: 'Respiratory', text: 'Administer supplemental O2 to keep SpO2 > 93%', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o8', cat: 'Nursing', text: 'Vital signs every 4 hours and PRN', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o9', cat: 'Nursing', text: 'I & O every 4 hours', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o10', cat: 'Nursing', text: 'Bladder scan every shift & PRN signs/symptoms of urinary retention', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o11', cat: 'Nursing', text: 'Sterile dressing change to right hip daily', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o12', cat: 'Lab', text: 'BMP, CBC, lactate level', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o13', cat: 'Nursing', text: 'Notify provider: SBP < 100 or > 160, HR < 55 or > 110, SpO2 < 90%', time: '08:00', day: -5, by: 'Dr. Marcus' }
+    ],
+    meds: [
+      { id: 'liv-lr', name: 'Lactated Ringer\'s', dose: '75 mL/hr', route: 'IV', freq: 'Continuous', type: 'continuous', rate: '75 mL/hr', started: { time: '08:00', by: 'LJ' } },
+      { id: 'liv-docusate', name: 'Docusate sodium', dose: '100 mg', route: 'PO', freq: 'BID', type: 'scheduled', doses: [{ time: '09:00', given: 'LJ' }, { time: '21:00' }] },
+      { id: 'liv-enox', name: 'Enoxaparin sodium', dose: '40 mg', route: 'Subcut', freq: 'Daily', type: 'scheduled', indication: 'VTE prophylaxis', highAlert: true, doses: [{ time: '17:00' }] },
+      { id: 'liv-piptazo', name: 'Piperacillin-tazobactam', dose: '450 mg', route: 'IVPB', freq: 'Every 8 hours', type: 'scheduled', tags: ['penicillin'], doses: [{ time: '06:00', given: 'LJ' }, { time: '14:00' }, { time: '22:00' }] },
+      { id: 'liv-caco3', name: 'Calcium carbonate', dose: '650 mg', route: 'PO', freq: 'Daily', type: 'scheduled', doses: [{ time: '09:00', given: 'LJ' }] },
+      { id: 'liv-alendronate', name: 'Alendronate', dose: '70 mg', route: 'PO', freq: 'Weekly on Wednesdays', type: 'scheduled', weekday: 3, instructions: 'Give only on Wednesdays. Give with a full glass of plain water at least 30 minutes before food, drink, or other medications; patient must remain upright for 30 minutes.', doses: [{ time: '09:00' }] },
+      { id: 'liv-oxy', name: 'Oxycodone', dose: '15 mg', route: 'PO', freq: 'Every 4 hours PRN', type: 'prn', indication: 'Pain', minIntervalHr: 4, highAlert: true, preAssess: ['Pain', 'RR', 'SpO2'], lastGiven: { time: '02:00', by: 'LJ' } },
+      { id: 'liv-apap', name: 'Acetaminophen', dose: '650 mg', route: 'PO', freq: 'Every 6 hours PRN', type: 'prn', indication: 'Temp > 101 °F', minIntervalHr: 6, preAssess: ['Temp'], lastGiven: { time: '06:00', by: 'LJ' } },
+      { id: 'liv-ketorolac', name: 'Ketorolac', dose: '30 mg', route: 'IV push', freq: 'Every 6 hours PRN', type: 'prn', indication: 'Pain', instructions: 'Not to exceed 120 mg daily.', minIntervalHr: 6, preAssess: ['Pain'] }
+    ],
+    // From the Livingston vital signs flowsheet (ATU-Simulation-Hospital / Notion revision).
+    vitals: [
+      { at: -60, temp: 100.9, tempRoute: 'Oral', hr: 110, rr: 20, sbp: 110, dbp: 60, spo2: 94, o2: 'Nasal cannula', o2Flow: 2, pain: 0, note: 'Last set charted', by: 'Prior RN' }
+    ],
+    // From "Ruth_Livingston_lab2.pdf" (reference ranges as printed on the report).
+    labs: [
+      { id: 'liv-cbc-y', panel: 'Complete Blood Count', time: '06:00', day: -1, results: [
+        { t: 'Hgb', v: '9.0', u: 'g/dL', lo: 14, hi: 18 },
+        { t: 'HCT', v: 27, u: '%', lo: 42, hi: 50 },
+        { t: 'Platelets', v: 180, u: 'x10⁹/L', lo: 150, hi: 400 },
+        { t: 'WBC', v: 11.4, u: 'x10⁹/L', lo: 4, hi: 11 }
+      ] },
+      { id: 'liv-cbc-t', panel: 'Complete Blood Count', time: '06:00', results: [
+        { t: 'Hgb', v: '10.0', u: 'g/dL', lo: 14, hi: 18 },
+        { t: 'HCT', v: 29, u: '%', lo: 42, hi: 50 },
+        { t: 'Platelets', v: 175, u: 'x10⁹/L', lo: 150, hi: 400 },
+        { t: 'WBC', v: 15.7, u: 'x10⁹/L', lo: 4, hi: 11 }
+      ] },
+      { id: 'liv-bmp-t', panel: 'Basic Metabolic Panel', time: '06:00', results: [
+        { t: 'Sodium', v: 138, u: 'mEq/L', lo: 136, hi: 145 },
+        { t: 'Potassium', v: 3.7, u: 'mEq/L', lo: 3.5, hi: 5.0 },
+        { t: 'Chloride', v: 105, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'Calcium', v: 8.6, u: 'mg/dL', lo: 8.6, hi: 10.2 },
+        { t: 'HCO3', v: 29, u: 'mEq/L', lo: 23, hi: 28 },
+        { t: 'BUN', v: 24, u: 'mg/dL', lo: 8, hi: 20 },
+        { t: 'Creatinine', v: 1.5, u: 'mg/dL', lo: 0.7, hi: 1.3 },
+        { t: 'Glucose', v: 98, u: 'mg/dL', lo: 70, hi: 99 }
+      ] },
+      { id: 'liv-misc-t', panel: 'Miscellaneous', time: '06:00', results: [
+        { t: 'Lactate (venous)', v: '5.0', u: 'mmol/L', lo: 0.5, hi: 2.2 },
+        { t: 'Blood culture', v: 'Pending', ref: 'No growth' },
+        { t: 'ABO/Rh (blood type)', v: 'A+' }
+      ] }
+    ],
+    labsPending: 'Repeat urinalysis sent at 0600 — pending. Blood culture pending.',
+    imaging: [],
+    notes: [
+      // Provider notes written for the simulation from the chart (admission story, labs, MAR, nursing note); faculty should review.
+      { id: 'liv-hp', type: 'History & Physical — Orthopedic Admission', author: 'Hans Olsson, MD', time: '10:30', day: -6, md: true, text: '**Chief complaint:** Right hip pain and inability to bear weight after a fall at home.\n\n**HPI:** 80-year-old female brought to the emergency department after a ground-level fall at home this morning. She lives with her daughter and son-in-law. She tripped while walking to the kitchen, landed on her right side, and could not get up. Denies head strike, loss of consciousness, chest pain, or dizziness before the fall. Right hip X-ray shows a right femoral neck fracture.\n\n**PMH:** Osteoporosis (alendronate weekly, calcium daily). **PSH:** None. **Allergies:** NKDA.\n**Social:** Widowed; retired; master\'s degree in economics. Denies tobacco, alcohol, and drug use. **Code status:** Full code.\n\n**Exam:** Alert and oriented x4, pleasant, in moderate pain (7/10). Right lower extremity shortened and externally rotated; distal pulses palpable, sensation intact. Lungs clear. Heart regular. Abdomen soft, non-tender. Skin intact.\n\n**Assessment:** Right femoral neck fracture after mechanical fall; osteoporosis.\n\n**Plan:**\n1. Admit to orthopedic surgical unit; ORIF right hip tomorrow. Consent obtained. NPO after midnight.\n2. Pain control; fall precautions.\n3. Pre-op labs: CBC, BMP, type and screen.\n4. VTE prophylaxis and PT after surgery.' },
+      { id: 'liv-op', type: 'Brief Operative Note', author: 'Hans Olsson, MD', time: '11:15', day: -5, md: true, text: '**Procedure:** Open reduction internal fixation (ORIF), right femoral neck fracture.\n**Surgeon:** Hans Olsson, MD. **Anesthesia:** General.\n**Findings:** Right femoral neck fracture; stable fixation achieved.\n**Estimated blood loss:** 300 mL. **Fluids:** Lactated Ringer\'s. **Specimens:** None. **Drains:** None.\n**Complications:** None. **Condition:** Stable to PACU.\n\n**Post-op plan:** Weight bearing as tolerated with walker; PT to evaluate; SCDs and enoxaparin for VTE prophylaxis; indwelling urinary catheter; sterile dressing change daily; oxycodone PRN for pain; incentive spirometry.' },
+      { id: 'liv-pn4', type: 'Progress Note — POD 4', author: 'Dr. Marcus', time: '07:30', day: -1, md: true, text: '**S:** Pain controlled with oxycodone PRN. Ambulated in the hall with a walker and PT. Tolerating a regular diet. No complaints.\n\n**O:** Afebrile; vital signs stable on 2 L nasal cannula. Alert and oriented. Right hip incision clean, dry, and intact with no redness or drainage. Neurovascular checks intact right leg. Indwelling catheter draining clear yellow urine.\n**Labs (0600):** Hgb 9.0, HCT 27, WBC 11.4, platelets 180.\n\n**A/P:** 80-year-old female POD 4 after ORIF right hip.\n1. Continue PT, weight bearing as tolerated.\n2. Post-op anemia (Hgb 9.0), stable; recheck CBC in AM.\n3. Continue current antibiotic and medications per orders.\n4. Discharge planning: likely to inpatient rehab in 1–2 days.' },
+      { id: 'liv-pn5', type: 'Progress Note — POD 5', author: 'Dr. Marcus', time: '06:45', md: true, text: '**S:** Per nursing, the patient became acutely confused and was yelling at 0600, and was found with the indwelling catheter out and on the floor. She has been incontinent. Scant urethral bleeding noted. Acetaminophen given at 0600 per the PRN order for temperature > 101 °F.\n\n**O:** Seen at bedside; drowsy and oriented to person only (oriented x4 yesterday). Right hip incision clean, dry, and intact. Repeat urinalysis sent; 0600 CBC, BMP, and lactate pending at the time of this note.\n\n**A/P:** 80-year-old female POD 5 after ORIF right hip with new acute confusion and fever.\n1. Follow up the 0600 labs and repeat urinalysis when resulted.\n2. Neuro checks and vital signs per orders; notify the provider for SBP < 100 or > 160, HR < 55 or > 110, or SpO₂ < 90%.\n3. Reinsert the catheter only if ordered; bladder scan per orders.\n4. Continue fall precautions and current orders.' },
+      { id: 'liv-n1', type: 'Nursing Note', author: 'VR, RN', time: '06:00', text: 'Patient started yelling and was found confused in bed with the indwelling catheter lying on the floor. The patient has been incontinent. Scant urethral bleeding and minimal external trauma were noted. Received a complete bath and linen change. A repeat urinalysis was sent to lab and is pending.' }
+    ],
+    io: [],
+    events: [
+      {
+        id: 'liv-culture',
+        title: 'Blood culture resulted — Enterobacter cloacae',
+        instructorNotes: 'From "Culture Results — Ruth" (ATU-Simulation-Hospital). The baseline culture shows Pending until released.',
+        labs: [{ id: 'liv-culture-r', panel: 'Microbiology', results: [{ t: 'Blood culture', v: 'Positive — Enterobacter cloacae', ref: 'No growth', flag: 'A' }] }]
+      },
+      {
+        id: 'liv-icu-labs',
+        title: 'ICU repeat labs resulted',
+        instructorNotes: 'From "ICU Lab Results — Ruth". The source prints the repeat chloride as 1.5 (not physiologic) — it is left out here; add the correct value in patients.js if you have it. Collection time is not specified in the source.',
+        labs: [
+          { id: 'liv-cbc-icu', panel: 'Complete Blood Count', results: [
+            { t: 'Hgb', v: 10.2, u: 'g/dL', lo: 14, hi: 18 }, { t: 'HCT', v: 29.5, u: '%', lo: 42, hi: 50 },
+            { t: 'Platelets', v: 170, u: 'x10⁹/L', lo: 150, hi: 400 }, { t: 'WBC', v: '16.0', u: 'x10⁹/L', lo: 4, hi: 11 } ] },
+          { id: 'liv-bmp-icu', panel: 'Basic Metabolic Panel', results: [
+            { t: 'Sodium', v: 136, u: 'mEq/L', lo: 136, hi: 145 }, { t: 'Potassium', v: 3.6, u: 'mEq/L', lo: 3.5, hi: 5.0 },
+            { t: 'Calcium', v: 8.5, u: 'mg/dL', lo: 8.6, hi: 10.2 }, { t: 'HCO3', v: 19, u: 'mEq/L', lo: 23, hi: 28 },
+            { t: 'BUN', v: 25, u: 'mg/dL', lo: 8, hi: 20 }, { t: 'Creatinine', v: 1.5, u: 'mg/dL', lo: 0.7, hi: 1.3 },
+            { t: 'Glucose', v: 100, u: 'mg/dL', lo: 70, hi: 99 }, { t: 'Lactate (venous)', v: 5.1, u: 'mmol/L', lo: 0.5, hi: 2.2 } ] }
+        ]
+      },
+      {
+        id: 'liv-transfuse',
+        title: 'Transfusion orders — 2 units PRBC',
+        instructorNotes: 'From "Transfusion Orders — Ruth". Patient blood type A+ (on file; the TAR checks it). Date/time not entered in the source.',
+        orders: [
+          { id: 'liv-tx-o1', cat: 'Lab', text: 'Type and cross 2 units PRBC', by: 'Dr. Marcus' },
+          { id: 'liv-tx-o2', cat: 'Blood Products', text: 'Transfuse 2 units PRBC', by: 'Dr. Marcus' }
+        ]
+      },
+      {
+        id: 'liv-icu',
+        title: 'Change in condition — Transfer to ICU (ICU Orders)',
+        instructorNotes: 'From the Notion "ICU Orders" page. BMP, CBC, and lactate are to be drawn BEFORE IV antibiotics are started. Norepinephrine is conditional: start only if MAP < 65 or SBP < 100 AFTER the fluid bolus.',
+        patch: { unit: 'Intensive Care Unit', room: '—' },
+        discontinue: ['liv-lr', 'liv-piptazo'],
+        notes: [{ id: 'liv-icu-note', type: 'Transfer Note — Change in Condition', author: 'Dr. Marcus', md: true, text: '**Reason for transfer:** Acute change in condition on POD 5 after ORIF right hip.\n\n**Summary:** New acute confusion and fever overnight; the indwelling catheter was dislodged at 0600. Now tachycardic and hypotensive with increasing oxygen needs. 0600 labs: WBC 15.7 (11.4 yesterday), lactate 5.0, BUN 24, creatinine 1.5, HCO₃ 29. Blood culture pending.\n\n**Assessment:** Suspected sepsis, likely urinary source; acute kidney injury; acute metabolic encephalopathy.\n\n**Plan:** Transfer to ICU. Continuous ECG and pulse oximetry. BMP, CBC, and lactate before IV antibiotics. NS 500 mL bolus over 30 minutes, then NS at 125 mL/hr; norepinephrine per protocol if MAP < 65 or SBP < 100 after the bolus. Discontinue piperacillin-tazobactam and LR; start vancomycin. Foley catheter; strict I&O. Vital signs every 15 minutes. Family (daughter) updated.' }],
+        orders: [
+          { id: 'liv-icu-o1', cat: 'Admission', text: 'Transfer to ICU', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o2', cat: 'Activity', text: 'Bed rest', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o3', cat: 'Nursing', text: 'Continuous ECG and pulse oximetry monitoring', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o4', cat: 'Consult', text: 'Physical Therapy: evaluate for passive ROM; advance when able', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o5', cat: 'Respiratory', text: 'Administer supplemental O2 to keep SpO2 > 93%', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o6', cat: 'Nursing', text: 'Vital signs every 15 minutes and PRN; I&O every 4 hours', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o7', cat: 'IV Fluids', text: 'Normal saline bolus 500 mL over 30 minutes STAT', priority: 'STAT', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o8', protocol: 'norepi', cat: 'Medication', text: 'After fluid bolus, if MAP < 65 or SBP < 100 start: Norepinephrine (Levophed) @ 2 mcg/min continuous IV; titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o9', cat: 'Nursing', text: 'Place Foley catheter', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o10', cat: 'Nursing', text: 'Sterile dressing change to right hip every 12 hours', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o11', cat: 'Lab', text: 'BMP, CBC, lactate level prior to starting IV antibiotics', priority: 'STAT', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o12', cat: 'IV Fluids', text: 'DC Lactated Ringer\'s IV @ 75 mL/hr', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o13', cat: 'Medication', text: 'DC piperacillin-tazobactam 450 mg IV every 8 hours', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o14', cat: 'IV Fluids', text: 'NS @ 125 mL/hr after bolus completed', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o15', cat: 'Medication', text: 'Vancomycin 500 mg/250 mL IVPB every 8 hours (over 2 hours)', by: 'Dr. Marcus' }
+        ],
+        meds: [
+          { id: 'liv-nsbolus', name: '0.9% Sodium chloride bolus', dose: '500 mL', route: 'IV', freq: 'Once — over 30 minutes STAT', type: 'continuous', rate: '1,000 mL/hr x 30 min', instructions: 'Infuse 500 mL over 30 minutes STAT. Start NS @ 125 mL/hr after the bolus is completed.' },
+          { id: 'liv-ns125', name: '0.9% Sodium chloride', dose: '125 mL/hr', route: 'IV', freq: 'Continuous — after bolus completed', type: 'continuous', rate: '125 mL/hr' },
+          { id: 'liv-levo', protocol: 'norepi', name: 'Norepinephrine (Levophed)', dose: '2 mcg/min — titrate', route: 'IV', freq: 'Continuous — conditional', type: 'continuous', highAlert: true, rate: '2 mcg/min', preAssess: ['SBP', 'DBP', 'HR'], instructions: 'Start ONLY if MAP < 65 or SBP < 100 after the fluid bolus. Titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.' },
+          { id: 'liv-vanco', name: 'Vancomycin', dose: '500 mg/250 mL', route: 'IVPB', freq: 'Every 8 hours — over 2 hours', type: 'scheduled', instructions: 'Infuse over 2 hours. Draw BMP, CBC, and lactate BEFORE the first dose.', doses: [{ at: 15 }, { at: 495 }] }
+        ]
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* LEVEL 3 — PROGRESSIVE CARE: Carl Shapiro (NSTEMI)                   */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'shapiro',
+    level: 3,
+    experiences: ['icu'],
+    name: { first: 'Carl', last: 'Shapiro' },
+    mrn: 'PCS71900',
+    dob: '1972-07-19',
+    age: '54 years',
+    sex: 'M',
+    unit: 'Intensive Care Unit',
+    room: '—',
+    service: 'Cardiology',
+    attending: 'Dr. Chin A. Revis',
+    admitted: { time: '12:00' },
+    scenarioStart: '14:00',
+    admitDx: 'NSTEMI (NSTE-ACS)',
+    codeStatus: 'Full Code',
+    isolation: 'Standard',
+    nkda: true,
+    allergies: [],
+    heightCm: 175,
+    weightKg: 110,
+    flags: ['Continuous ECG', 'Anticoagulated'],
+    assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse'],
+    emergencyContact: 'Not documented',
+    demographics: {
+      'Primary language': 'English',
+      Race: 'White',
+      Ethnicity: 'Non-Hispanic',
+      Occupation: 'Businessman (travels for work)',
+      Education: 'College degree',
+      Insurance: 'Self pay',
+      'Cultural considerations': 'None'
+    },
+    hpi: '54-year-old male who presented to the Emergency Department a couple of hours ago by ambulance with complaints of chest pain, diaphoresis, and shortness of breath. Initial ECG shows sinus tachycardia with some PVCs and no ST elevation. Initial troponin slightly elevated. Admitted to the Intensive Care Unit for NSTEMI.',
+    pmh: ['Hypertension'],
+    psh: ['None'],
+    familyHx: ['None'],
+    socialHx: ['Businessman; travels for work', 'Smokes < 1/2 pack per day', 'Drinks alcohol occasionally'],
+    homeMeds: [{ name: '"Water pill" (diuretic — name not known)', dose: '', route: 'PO', freq: '' }],
+    orders: [
+      { id: 'sha-o1', cat: 'Admission', text: 'Transfer to Intensive Care Unit', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'sha-o2', cat: 'Nursing', text: 'Vital signs every 2 hours', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'sha-o3', cat: 'Nursing', text: 'Continuous ECG and SpO2 monitoring', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'sha-o4', cat: 'Respiratory', text: 'Oxygen for SpO2 less than 90% or respiratory distress', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'sha-o5', cat: 'Activity', text: 'Bed/chair rest', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'sha-o6', cat: 'Diet', text: 'Heart healthy', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'sha-o7', cat: 'IV Fluids', text: 'Normal saline at 25 mL/hr', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'sha-o8', cat: 'Lab', text: 'Repeat troponin I at arrival to unit and 3 hours after', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'sha-o9', cat: 'Diagnostics', text: '12-lead ECG for chest pain and immediately notify provider', time: '12:00', by: 'Dr. C. Revis' }
+    ],
+    meds: [
+      { id: 'sha-ns', name: 'Normal saline', dose: '25 mL/hr', route: 'IV', freq: 'Continuous', type: 'continuous', rate: '25 mL/hr', started: { time: '12:30', by: 'LJ' } },
+      { id: 'sha-asa', name: 'Aspirin', dose: '81 mg', route: 'PO', freq: 'Daily — start tomorrow', type: 'scheduled', doses: [{ time: '09:00', day: 1 }] },
+      { id: 'sha-tica-load', name: 'Ticagrelor (loading dose)', dose: '180 mg', route: 'PO', freq: 'Once today', type: 'once', highAlert: true, instructions: 'Loading dose x1 today, then 90 mg twice daily.', doses: [{ at: 0 }] },
+      { id: 'sha-tica', name: 'Ticagrelor', dose: '90 mg', route: 'PO', freq: 'BID — start tomorrow AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }, { time: '21:00', day: 1 }] },
+      { id: 'sha-enox', name: 'Enoxaparin', dose: '110 mg', route: 'Subcut', freq: 'Every 12 hours', type: 'scheduled', highAlert: true, preAssess: ['lab:Platelets'], doses: [{ time: '12:30', given: 'CR (ER)', extra: true }, { time: '21:00' }] },
+      { id: 'sha-ntg', name: 'Nitroglycerin', dose: '0.4 mg', route: 'Sublingual', freq: 'Every 5 minutes PRN x 3 doses', type: 'prn', indication: 'Chest pain', preAssess: ['Pain', 'SBP', 'HR'], instructions: 'For chest pain, obtain 12-lead ECG and notify provider immediately to evaluate for IV nitroglycerin.' }
+    ],
+    vitals: [
+      { time: '11:30', temp: 98.4, tempRoute: 'Oral', hr: 120, rr: 24, sbp: 158, dbp: 92, spo2: 89, o2: 'Room air', pain: 7, note: 'ER arrival', by: 'ER RN' },
+      { time: '11:45', temp: 98.2, tempRoute: 'Oral', hr: 102, rr: 20, sbp: 96, dbp: 50, spo2: 90, o2: 'Nasal cannula', o2Flow: 2, pain: 6, by: 'ER RN' },
+      { time: '12:00', temp: 98.2, tempRoute: 'Oral', hr: 104, rr: 18, sbp: 122, dbp: 83, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 1, by: 'ER RN' },
+      { time: '12:15', temp: 98.4, tempRoute: 'Oral', hr: 100, rr: 16, sbp: 120, dbp: 82, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'ER RN' },
+      { time: '12:30', temp: 98.4, tempRoute: 'Oral', hr: 101, rr: 16, sbp: 125, dbp: 75, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'ER RN' }
+    ],
+    labs: [
+      { id: 'sha-cbc', panel: 'Complete Blood Count', time: '12:50', results: [
+        { t: 'Hgb', v: 14, u: 'g/dL', lo: 13.5, hi: 17.5 },
+        { t: 'HCT', v: 44, u: '%', lo: 40, hi: 45 },
+        { t: 'WBC', v: 8.2, u: 'x10⁹/L', lo: 5, hi: 11 },
+        { t: 'Platelets', v: 295, u: 'x10⁹/L', lo: 150, hi: 400 }
+      ] },
+      { id: 'sha-bmp', panel: 'Basic Metabolic Panel', time: '12:50', results: [
+        { t: 'Sodium', v: 140, u: 'mEq/L', lo: 135, hi: 145 },
+        { t: 'Potassium', v: 3.8, u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Chloride', v: 96, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'HCO3', v: 22, u: 'mEq/L', lo: 22, hi: 26 },
+        { t: 'BUN', v: 23, u: 'mg/dL', lo: 8, hi: 23 },
+        { t: 'Creatinine', v: 1.1, u: 'mg/dL', lo: 0.6, hi: 1.1 },
+        { t: 'Glucose', v: 122, u: 'mg/dL', lo: 70, hi: 110 }
+      ] },
+      { id: 'sha-misc', panel: 'Coagulation & Cardiac', time: '12:50', results: [
+        { t: 'INR', v: 0.9, u: '', lo: 0.8, hi: 1.1 },
+        { t: 'aPTT', v: 30, u: 's', lo: 25, hi: 40 },
+        { t: 'Troponin I', v: 0.06, u: 'ng/mL', ref: '≤ 0.04', flag: 'H' },
+        { t: 'BNP', v: 78, u: 'pg/mL', ref: '< 100' }
+      ] },
+      { id: 'sha-trop2', panel: 'Troponin I (repeat — arrival to unit)', time: '13:00', results: [
+        { t: 'Troponin I', v: 'Pending', ref: '≤ 0.04' }
+      ] }
+    ],
+    imaging: [
+      { id: 'sha-ecg', study: '12-Lead ECG (ER)', time: '11:35', text: 'No ST elevation noted. Sinus tachycardia with some PVCs.' }
+    ],
+    notes: [
+      { id: 'sha-n1', type: 'ER Note', author: 'Dr. Williams (ER)', time: '11:40', text: 'CHIEF COMPLAINT: Chest pain, diaphoresis, and shortness of breath.\n\nHPI: Mr. Shapiro presents to the ER with complaints of chest pain, diaphoresis, and shortness of breath.\nPMH: No history of surgeries. History of hypertension.\nFamily history: None. Allergies: NKDA.\nSocial: Businessman; travels for work; smokes < 1/2 pack/day; drinks alcohol occasionally.\n\nROS: General — cooperative, pleasant. CV — no palpitations, some chest pain. Resp — shortness of breath. GI/GU — no nausea, vomiting, or abdominal pain. MSK — no pain, ROM WDL. Neuro — no headache, no focal deficits.\n\nEXAM: Appears uncomfortable, in moderate distress due to pain of 9/10. T 98.7 °F, HR 101, RR 20, BP 140/84, SpO2 97% RA. HEENT: no oropharyngeal lesions; no cervical lymphadenopathy. Resp: clear bilaterally, regular rate, equal expansion. CV: S1 S2 RR, no murmurs/gallops; diaphoretic; chest pain 9/10; no peripheral edema; CR < 3 sec all extremities. Abd: soft, round, non-tender; active bowel sounds x4. MSK: no joint swelling or erythema. Neuro: no focal deficits.\n\nLABS/IMAGING: CBC, BMP, troponin pending. 12-lead ECG: no ST elevation; sinus tachycardia with some PVCs.\n\nPLAN: Consult cardiology.' },
+      { id: 'sha-n2', type: 'Cardiology Admit Note', author: 'Dr. C. Revis', time: '12:00', text: 'ASSESSMENT: Carl Shapiro is a 54-year-old male with a history of hypertension who presents to the ER with complaints of chest pain, diaphoresis, and shortness of breath. Initial ECG shows sinus tachycardia with some PVCs. Initial troponin slightly elevated.\n\nPLAN:\n1. Admission: NSTEMI — admit to Intensive Care Unit.\n2. Medication: continue home medications.\n3. Labs: trend troponins.' },
+      { id: 'sha-n3', type: 'Nursing Note', author: 'LJ, RN', time: '12:30', text: 'Pt arrived in ER complaining of chest pain. He came to the ED by ambulance when the symptoms began. No family is present. He was treated with oxygen 2 L via nasal cannula, aspirin, two doses of sublingual nitroglycerin, and a normal saline bolus required after the second dose of nitroglycerin with no recurrent chest pain. 12-lead ECG in ED showed no ST elevation. Antiplatelet and anticoagulation meds were started and documented in the MAR.' }
+    ],
+    io: [],
+    events: [
+      {
+        id: 'sha-trop',
+        title: 'Repeat troponin I resulted',
+        instructorNotes: 'From Notion "Lab Results (Shapiro new)". Troponin I rising 0.06 → 0.1 ng/mL.',
+        labs: [
+          { id: 'sha-trop2r', panel: 'Troponin I (repeat)', results: [
+            { t: 'Troponin I', v: 0.1, u: 'ng/mL', ref: '≤ 0.04', flag: 'H' }
+          ] }
+        ]
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* LEVEL 3 — PROGRESSIVE CARE: Karl Sharp (NSTEMI, DNR)                */
+  /* Look-alike / sound-alike partner of Carl Shapiro (same DOB).        */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'sharp',
+    level: 3,
+    experiences: ['advms'],
+    name: { first: 'Karl', last: 'Sharp' },
+    mrn: 'PCS71901', // Notion lab sheet shows PCS71900 (same as Shapiro) — changed so wristband scanning can tell them apart
+    dob: '1962-07-19',
+    age: '64 years',
+    sex: 'M',
+    unit: 'Progressive Care Unit',
+    room: '—',
+    service: 'Cardiology',
+    attending: 'Dr. Chin A. Revis',
+    admitted: { time: '12:00' },
+    scenarioStart: '14:00',
+    admitDx: 'NSTEMI (NSTE-ACS)',
+    codeStatus: 'DNR',
+    advanceDirective: 'DNR',
+    isolation: 'Standard',
+    nkda: true,
+    allergies: [],
+    heightCm: 175,
+    weightKg: 110,
+    flags: ['DNR', 'Continuous ECG'],
+    assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse'],
+    emergencyContact: 'Not documented',
+    demographics: {
+      'Primary language': 'English',
+      Race: 'White',
+      Ethnicity: 'Non-Hispanic',
+      Occupation: 'Businessman (travels for work)',
+      Education: 'College degree',
+      Insurance: 'Self pay',
+      'Cultural considerations': 'None'
+    },
+    hpi: '64-year-old male who presented to the Emergency Department a couple of hours ago by ambulance with complaints of chest pain, diaphoresis, and shortness of breath. Initial ECG shows sinus tachycardia with some PVCs and no ST elevation. Initial troponin slightly elevated. Admitted to the Progressive Care Unit for NSTEMI.',
+    pmh: ['Hypertension'],
+    psh: ['None'],
+    familyHx: ['None'],
+    socialHx: ['Businessman; travels for work', 'Smokes < 1/2 pack per day', 'Drinks alcohol occasionally'],
+    homeMeds: [{ name: '"Water pill" (diuretic — name not known)', dose: '', route: 'PO', freq: '' }],
+    orders: [
+      { id: 'shp-o1', cat: 'Admission', text: 'Transfer to Progressive Care Unit', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'shp-o0', cat: 'Code Status', text: 'DNR', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'shp-o2', cat: 'Nursing', text: 'Vital signs every 2 hours', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'shp-o3', cat: 'Nursing', text: 'Continuous ECG and SpO2 monitoring', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'shp-o4', cat: 'Respiratory', text: 'Oxygen for SpO2 less than 90% or respiratory distress', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'shp-o5', cat: 'Activity', text: 'Bed/chair rest', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'shp-o6', cat: 'Diet', text: 'Heart healthy', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'shp-o7', cat: 'IV Fluids', text: 'Normal saline at 25 mL/hr', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'shp-o8', cat: 'Lab', text: 'Repeat troponin I at arrival to unit and 3 hours after', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'shp-o9', cat: 'Diagnostics', text: '12-lead ECG for chest pain and immediately notify provider', time: '12:00', by: 'Dr. C. Revis' }
+    ],
+    meds: [
+      { id: 'shp-ns', name: 'Normal saline', dose: '25 mL/hr', route: 'IV', freq: 'Continuous', type: 'continuous', rate: '25 mL/hr', started: { time: '12:30', by: 'LJ' } },
+      { id: 'shp-asa', name: 'Aspirin', dose: '81 mg', route: 'PO', freq: 'Daily — start in AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }] },
+      { id: 'shp-tica', name: 'Ticagrelor', dose: '90 mg', route: 'PO', freq: 'BID — start in AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }, { time: '21:00', day: 1 }] },
+      { id: 'shp-enox', name: 'Enoxaparin', dose: '110 mg', route: 'Subcut', freq: 'Every 12 hours', type: 'scheduled', highAlert: true, preAssess: ['lab:Platelets'], doses: [{ time: '12:30', given: 'CR (ER)', extra: true }, { time: '21:00' }] },
+      { id: 'shp-ntg', name: 'Nitroglycerin', dose: '0.4 mg', route: 'Sublingual', freq: 'Every 5 minutes PRN x 3 doses', type: 'prn', indication: 'Chest pain', preAssess: ['Pain', 'SBP', 'HR'], instructions: 'For chest pain, obtain 12-lead ECG and notify provider immediately to evaluate for IV nitroglycerin.', lastGiven: { time: '11:40', by: 'ER RN' } },
+      { id: 'shp-er-tica', name: 'Ticagrelor (loading dose)', dose: '180 mg', route: 'PO', freq: 'Once', type: 'once', doses: [{ time: '11:45', given: 'Given in ER' }] },
+      { id: 'shp-er-asa', name: 'Aspirin (chewed)', dose: '325 mg', route: 'PO', freq: 'Once', type: 'once', doses: [{ time: '11:35', given: 'Given in ER' }] },
+      { id: 'shp-er-bolus', name: 'Normal saline bolus', dose: '500 mL', route: 'IV', freq: 'Once', type: 'once', doses: [{ time: '11:50', given: 'Given in ER' }] }
+    ],
+    vitals: [
+      { time: '11:30', temp: 98.4, tempRoute: 'Oral', hr: 120, rr: 24, sbp: 158, dbp: 92, spo2: 89, o2: 'Room air', pain: 7, note: 'ER arrival', by: 'ER RN' },
+      { time: '11:45', temp: 98.2, tempRoute: 'Oral', hr: 102, rr: 20, sbp: 96, dbp: 50, spo2: 90, o2: 'Nasal cannula', o2Flow: 2, pain: 6, by: 'ER RN' },
+      { time: '12:00', temp: 98.2, tempRoute: 'Oral', hr: 104, rr: 18, sbp: 122, dbp: 83, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 1, by: 'ER RN' },
+      { time: '12:15', temp: 98.4, tempRoute: 'Oral', hr: 100, rr: 16, sbp: 120, dbp: 82, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'ER RN' },
+      { time: '12:30', temp: 98.4, tempRoute: 'Oral', hr: 101, rr: 16, sbp: 125, dbp: 75, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'ER RN' }
+    ],
+    labs: [
+      { id: 'shp-cbc', panel: 'Complete Blood Count', time: '12:50', results: [
+        { t: 'Hgb', v: 14, u: 'g/dL', lo: 13.5, hi: 17.5 },
+        { t: 'HCT', v: 44, u: '%', lo: 40, hi: 45 },
+        { t: 'WBC', v: 8.2, u: 'x10⁹/L', lo: 5, hi: 11 },
+        { t: 'Platelets', v: 295, u: 'x10⁹/L', lo: 150, hi: 400 }
+      ] },
+      { id: 'shp-bmp', panel: 'Basic Metabolic Panel', time: '12:50', results: [
+        { t: 'Sodium', v: 140, u: 'mEq/L', lo: 135, hi: 145 },
+        { t: 'Potassium', v: 3.8, u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Chloride', v: 96, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'HCO3', v: 22, u: 'mEq/L', lo: 22, hi: 26 },
+        { t: 'BUN', v: 23, u: 'mg/dL', lo: 8, hi: 23 },
+        { t: 'Creatinine', v: 1.1, u: 'mg/dL', lo: 0.6, hi: 1.1 },
+        { t: 'Glucose', v: 122, u: 'mg/dL', lo: 70, hi: 110 }
+      ] },
+      { id: 'shp-misc', panel: 'Coagulation & Cardiac', time: '12:50', results: [
+        { t: 'INR', v: 0.9, u: '', lo: 0.8, hi: 1.1 },
+        { t: 'aPTT', v: 30, u: 's', lo: 25, hi: 40 },
+        { t: 'Troponin I', v: 0.06, u: 'ng/mL', ref: '≤ 0.04', flag: 'H' },
+        { t: 'BNP', v: 78, u: 'pg/mL', ref: '< 100' }
+      ] },
+      { id: 'shp-trop2', panel: 'Troponin I (repeat — arrival to unit)', time: '13:00', results: [
+        { t: 'Troponin I', v: 0.1, u: 'ng/mL', ref: '≤ 0.04', flag: 'H' }
+      ] }
+    ],
+    imaging: [
+      { id: 'shp-ecg', study: '12-Lead ECG (ER)', time: '11:35', text: 'No ST elevation noted. Sinus tachycardia with some PVCs.' }
+    ],
+    notes: [
+      { id: 'shp-n1', type: 'ER Note', author: 'Dr. Williams (ER)', time: '11:40', text: 'CHIEF COMPLAINT: Chest pain, diaphoresis, and shortness of breath.\n\nHPI: Mr. Sharp presents to the ER with complaints of chest pain, diaphoresis, and shortness of breath.\nPMH: No history of surgeries. History of hypertension.\nFamily history: None. Allergies: NKDA.\nSocial: Businessman; travels for work; smokes < 1/2 pack/day; drinks alcohol occasionally.\n\nROS: General — cooperative, pleasant. CV — no palpitations, some chest pain. Resp — shortness of breath. GI/GU — no nausea, vomiting, or abdominal pain. MSK — no pain, ROM WDL. Neuro — no headache, no focal deficits.\n\nEXAM: Appears uncomfortable, in moderate distress due to pain of 9/10. T 98.7 °F, HR 101, RR 20, BP 140/84, SpO2 97% RA. HEENT: no oropharyngeal lesions; no cervical lymphadenopathy. Resp: clear bilaterally, regular rate, equal expansion. CV: S1 S2 RR, no murmurs/gallops; diaphoretic; chest pain 9/10; no peripheral edema; CR < 3 sec all extremities. Abd: soft, round, non-tender; active bowel sounds x4. MSK: no joint swelling or erythema. Neuro: no focal deficits.\n\nLABS/IMAGING: CBC, BMP, troponin pending. 12-lead ECG: no ST elevation; sinus tachycardia with some PVCs.\n\nPLAN: Consult cardiology.' },
+      { id: 'shp-n2', type: 'Cardiology Admit Note', author: 'Dr. C. Revis', time: '12:00', text: 'ASSESSMENT: Karl Sharp is a 64-year-old male with a history of hypertension who presents to the ER with complaints of chest pain, diaphoresis, and shortness of breath. Initial ECG shows sinus tachycardia with some PVCs. Initial troponin slightly elevated.\n\nPLAN:\n1. Admission: NSTEMI — admit to Progressive Care Unit.\n2. Medication: continue home medications.\n3. Labs: trend troponins.' },
+      { id: 'shp-n3', type: 'Nursing Note', author: 'LJ, RN', time: '12:30', text: 'Pt arrived in ER complaining of chest pain. He came to the ED by ambulance when the symptoms began. No family is present. He was treated with oxygen 2 L via nasal cannula, aspirin, two doses of sublingual nitroglycerin, and a normal saline bolus required after the second dose of nitroglycerin with no recurrent chest pain. 12-lead ECG in ED showed no ST elevation. Antiplatelet and anticoagulation meds were started and documented in the MAR.' }
+    ],
+    io: [],
+    events: []
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* LEVEL 3 — MED-SURG: Vernon Watkins (POD 4 hemicolectomy)            */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'watkins',
+    level: 3,
+    experiences: ['advms'],
+    name: { first: 'Vernon', last: 'Watkins' },
+    mrn: 'PCS40900', // from the Watkins lab report and heparin order PDFs
+    dob: '1957-04-09',
+    age: '69 years',
+    sex: 'M',
+    unit: 'Medical-Surgical Unit',
+    room: '—',
+    service: 'General Surgery',
+    attending: 'Dr. Jack Nelson',
+    admitted: { time: '10:00', day: -4 },
+    scenarioStart: '10:00',
+    admitDx: 'Bowel perforation — s/p left hemicolectomy (POD 4)',
+    codeStatus: 'Full Code',
+    isolation: 'Standard',
+    allergies: [{ agent: 'Penicillin', reaction: 'Hives', severity: 'Moderate', tags: ['penicillin'] }],
+    heightCm: 182,
+    weightKg: 80,
+    flags: ['Post-op'],
+    assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse'],
+    heparinFlowsheet: true,
+    // From "Heparin_1.pdf". Opened from the P on the heparin orders once the STAT orders are released.
+    protocols: {
+      heparin: {
+        title: 'Anticoagulation Orders (Therapeutic) — Heparin Weight Based Protocol',
+        items: [
+          ['Indication', 'B. DVT / PE / Atrial Fibrillation'],
+          ['Patient weight', '80 kg (use actual body weight)'],
+          ['Before starting', 'Discontinue any previous anticoagulation orders (heparin, enoxaparin). Obtain aPTT, CBC, patient weight. CBC every 3 days. Caution with aspirin, clopidogrel, Aggrenox, NSAIDs.'],
+          ['Concentration', 'Heparin 25,000 units/500 mL D5W'],
+          ['Initial bolus', 'Heparin 80 units/kg IV once — round to the nearest 500 units; not to exceed 10,000 units'],
+          ['Initial infusion', 'Heparin continuous IV infusion — starting dose 18 units/kg/hr; not to exceed 2,250 units/hr'],
+          ['Maintenance', 'Adjust per the Heparin Dosing Nomogram for all indications']
+        ],
+        tableTitle: 'Heparin Dosing Nomogram',
+        table: { head: ['aPTT result (sec)', 'Bolus', 'Hold infusion', 'Dose change', 'Repeat aPTT'], rows: [
+          ['≤ 50', '80 units/kg IV', 'No', '+ 4 units/kg/hr', '6 hours'],
+          ['51–64', '40 units/kg IV', 'No', '+ 2 units/kg/hr', '6 hours'],
+          ['65–95', '0', 'No', 'No change', 'Next AM'],
+          ['96–105', '0', 'No', '− 2 units/kg/hr', '6 hours'],
+          ['106–130', '0', 'Hold 30 minutes', '− 3 units/kg/hr', '6 hours'],
+          ['131–160', '0', 'Hold 60 minutes', '− 3 units/kg/hr', '6 hours'],
+          ['≥ 160', '0', 'Hold 60 minutes', '− 4 units/kg/hr', '6 hours']
+        ] },
+        signedBy: 'Dr. Nelson'
+      }
+    },
+    emergencyContact: 'Wife — phone on file',
+    demographics: {
+      'Marital status': 'Married',
+      'Primary language': 'English',
+      Race: 'White',
+      Ethnicity: 'Non-Hispanic',
+      Religion: 'Catholic',
+      Occupation: 'Retired postal worker',
+      Education: 'College degree',
+      Insurance: 'Self pay',
+      'Cultural considerations': 'None'
+    },
+    hpi: 'Mr. Watkins presented to the ER 4 days ago with nausea, vomiting, and severe abdominal pain x 2 days. On arrival his abdomen was firm, distended, and tender with hypoactive bowel sounds. Abdominal X-ray indicated perforated bowel with free fluid in the abdomen. An emergency left hemicolectomy was performed that day and he was admitted to the medical-surgical unit. He is now POD 4.',
+    pmh: ['Hypertension', 'Cataracts'],
+    psh: ['Left hemicolectomy — 4 days ago (this admission)'],
+    familyHx: ['None'],
+    socialHx: ['Lives with wife', 'Retired postal worker', 'Catholic', 'Smokes 1/2 pack per day (filtered) x 50 years'],
+    homeMeds: [{ name: 'Hydrochlorothiazide', dose: '25 mg', route: 'PO', freq: 'Daily' }],
+    orders: [
+      { id: 'wat-o1', cat: 'Admission', text: 'Diagnosis: s/p hemicolectomy POD 4', time: '06:00', by: 'Dr. Jack Nelson' },
+      { id: 'wat-o2', cat: 'Code Status', text: 'Full Code', time: '06:00', by: 'Dr. Jack Nelson' },
+      { id: 'wat-o3', cat: 'Diet', text: 'Regular diet', time: '06:00', by: 'Dr. Jack Nelson' },
+      { id: 'wat-o4', cat: 'Activity', text: 'Out of bed ad lib', time: '06:00', by: 'Dr. Jack Nelson' },
+      { id: 'wat-o5', cat: 'Nursing', text: 'Vital signs with SpO2 every 4 hours', time: '06:00', by: 'Dr. Jack Nelson' },
+      { id: 'wat-o6', cat: 'Respiratory', text: 'Oxygen to maintain SpO2 greater than 92%', time: '06:00', by: 'Dr. Jack Nelson' },
+      { id: 'wat-o7', cat: 'Lab', text: 'CBC, platelets, BMP, PT/INR, aPTT @ 0600', time: '06:00', by: 'Dr. Jack Nelson' }
+    ],
+    meds: [
+      { id: 'wat-hctz', name: 'Hydrochlorothiazide', dose: '25 mg', route: 'PO', freq: 'Daily', type: 'scheduled', preAssess: ['SBP', 'lab:Potassium'], doses: [{ time: '09:00', given: 'CR' }] },
+      { id: 'wat-cipro', name: 'Ciprofloxacin 400 mg in 100 mL NS', dose: '400 mg', route: 'IVPB', freq: 'Every 12 hours', type: 'scheduled', doses: [{ time: '09:00', given: 'CR' }, { time: '21:00' }] },
+      { id: 'wat-metro', name: 'Metronidazole 500 mg in 100 mL NS', dose: '500 mg', route: 'IVPB', freq: 'Every 12 hours', type: 'scheduled', doses: [{ time: '06:00', given: 'LJ' }, { time: '18:00' }] },
+      { id: 'wat-enox', name: 'Enoxaparin', dose: '40 mg', route: 'Subcut', freq: 'Daily', type: 'scheduled', highAlert: true, doses: [{ time: '09:00', given: 'CR' }] },
+      { id: 'wat-apap', name: 'Acetaminophen', dose: '1 gram', route: 'PO', freq: 'Every 12 hours (per order)', type: 'scheduled', instructions: 'Provider order reads every 12 hours; the MAR lists every 8 hours (0000/0800/1600). Verify frequency with the provider.', doses: [{ time: '00:00', given: 'LJ' }, { time: '08:00', given: 'LJ' }, { time: '16:00' }] },
+      { id: 'wat-gaba', name: 'Gabapentin', dose: '300 mg', route: 'PO', freq: 'Every 8 hours', type: 'scheduled', doses: [{ time: '00:00', given: 'LJ' }, { time: '08:00', given: 'LJ' }, { time: '16:00' }] },
+      { id: 'wat-oxy5', name: 'Oxycodone', dose: '5 mg', route: 'PO', freq: 'Every 4 hours PRN', type: 'prn', indication: 'Moderate pain 4–7', minIntervalHr: 4, highAlert: true, preAssess: ['Pain', 'RR', 'SpO2'] },
+      { id: 'wat-oxy10', name: 'Oxycodone', dose: '10 mg', route: 'PO', freq: 'Every 4 hours PRN', type: 'prn', indication: 'Severe pain 8–10', minIntervalHr: 4, highAlert: true, preAssess: ['Pain', 'RR', 'SpO2'] }
+    ],
+    vitals: [
+      { time: '01:00', temp: 99.1, tempRoute: 'Oral', hr: 95, rr: 21, sbp: 125, dbp: 84, spo2: 96, o2: 'Room air', pain: 0, by: 'Night shift RN' },
+      { time: '05:00', temp: 99.3, tempRoute: 'Oral', hr: 103, rr: 22, sbp: 129, dbp: 85, spo2: 96, o2: 'Room air', pain: 5, by: 'Night shift RN' },
+      { time: '09:00', temp: 99.0, tempRoute: 'Oral', hr: 105, rr: 22, sbp: 130, dbp: 84, spo2: 94, o2: 'Room air', pain: 0, by: 'Day shift RN' }
+    ],
+    // From "watkin_labs.pdf": pre-op (ER, 4 days ago), post-op day 3, post-op day 4 (0600 today).
+    labs: [
+      { id: 'wat-cbc-pre', panel: 'Complete Blood Count', time: '11:00', day: -4, results: [
+        { t: 'Hgb', v: 13, u: 'g/dL', lo: 13.5, hi: 17.5 },
+        { t: 'HCT', v: 39, u: '%', lo: 40, hi: 45 },
+        { t: 'WBC', v: 17.2, u: 'x10⁹/L', lo: 5, hi: 11 },
+        { t: 'Platelets', v: 350, u: 'x10⁹/L', lo: 150, hi: 400 }
+      ] },
+      { id: 'wat-bmp-pre', panel: 'Basic Metabolic Panel', time: '11:00', day: -4, results: [
+        { t: 'Sodium', v: 142, u: 'mEq/L', lo: 135, hi: 145 },
+        { t: 'Potassium', v: 3.7, u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Chloride', v: 95, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'HCO3', v: 30, u: 'mEq/L', lo: 22, hi: 26 },
+        { t: 'BUN', v: 17, u: 'mg/dL', lo: 8, hi: 23 },
+        { t: 'Creatinine', v: '1.0', u: 'mg/dL', lo: 0.6, hi: 1.1 },
+        { t: 'Glucose', v: 110, u: 'mg/dL', lo: 70, hi: 110 }
+      ] },
+      { id: 'wat-coag-pre', panel: 'Coagulation', time: '11:00', day: -4, results: [
+        { t: 'PT', v: 12, u: 's', lo: 10, hi: 14 },
+        { t: 'INR', v: '1.0', lo: 0.8, hi: 1.1 },
+        { t: 'aPTT', v: 30, u: 's', lo: 25, hi: 40 }
+      ] },
+      { id: 'wat-cbc-pod3', panel: 'Complete Blood Count', time: '06:00', day: -1, results: [
+        { t: 'Hgb', v: 11, u: 'g/dL', lo: 13.5, hi: 17.5 },
+        { t: 'HCT', v: 32, u: '%', lo: 40, hi: 45 },
+        { t: 'WBC', v: 10, u: 'x10⁹/L', lo: 5, hi: 11 },
+        { t: 'Platelets', v: 320, u: 'x10⁹/L', lo: 150, hi: 400 }
+      ] },
+      { id: 'wat-bmp-pod3', panel: 'Basic Metabolic Panel', time: '06:00', day: -1, results: [
+        { t: 'Sodium', v: 140, u: 'mEq/L', lo: 135, hi: 145 },
+        { t: 'Potassium', v: '4.0', u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Chloride', v: 100, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'HCO3', v: 25, u: 'mEq/L', lo: 22, hi: 26 },
+        { t: 'BUN', v: 15, u: 'mg/dL', lo: 8, hi: 23 },
+        { t: 'Creatinine', v: 0.9, u: 'mg/dL', lo: 0.6, hi: 1.1 },
+        { t: 'Glucose', v: 100, u: 'mg/dL', lo: 70, hi: 110 }
+      ] },
+      { id: 'wat-coag-pod3', panel: 'Coagulation', time: '06:00', day: -1, results: [
+        { t: 'PT', v: 12, u: 's', lo: 10, hi: 14 },
+        { t: 'INR', v: '1.0', lo: 0.8, hi: 1.1 },
+        { t: 'aPTT', v: 32, u: 's', lo: 25, hi: 40 }
+      ] },
+      { id: 'wat-cbc-pod4', panel: 'Complete Blood Count', time: '06:00', results: [
+        { t: 'Hgb', v: 11.5, u: 'g/dL', lo: 13.5, hi: 17.5 },
+        { t: 'HCT', v: 33, u: '%', lo: 40, hi: 45 },
+        { t: 'WBC', v: 11, u: 'x10⁹/L', lo: 5, hi: 11 },
+        { t: 'Platelets', v: 320, u: 'x10⁹/L', lo: 150, hi: 400 }
+      ] },
+      { id: 'wat-bmp-pod4', panel: 'Basic Metabolic Panel', time: '06:00', results: [
+        { t: 'Sodium', v: 141, u: 'mEq/L', lo: 135, hi: 145 },
+        { t: 'Potassium', v: '4.0', u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Chloride', v: 100, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'HCO3', v: 25, u: 'mEq/L', lo: 22, hi: 26 },
+        { t: 'BUN', v: 15, u: 'mg/dL', lo: 8, hi: 23 },
+        { t: 'Creatinine', v: 0.9, u: 'mg/dL', lo: 0.6, hi: 1.1 },
+        { t: 'Glucose', v: 108, u: 'mg/dL', lo: 70, hi: 110 }
+      ] },
+      { id: 'wat-coag-pod4', panel: 'Coagulation', time: '06:00', results: [
+        { t: 'PT', v: 12, u: 's', lo: 10, hi: 14 },
+        { t: 'INR', v: '1.0', lo: 0.8, hi: 1.1 },
+        { t: 'aPTT', v: 32, u: 's', lo: 25, hi: 40 }
+      ] }
+    ],
+    imaging: [],
+    notes: [
+      { id: 'wat-n1', type: 'ER Note', author: 'Dr. Henderson (ER)', time: '10:00', day: -4, text: 'CHIEF COMPLAINT: Nausea, vomiting, and severe abdominal pain.\n\nHPI: Mr. Watkins presented to the ER with complaints of nausea, vomiting, and severe abdominal pain x 2 days.\nPMH: No history of surgeries. History of hypertension, cataracts.\nFamily history: None. Allergies: Penicillin.\nSocial: Lives with wife; retired postal worker; Catholic; smokes 1/2 pack/day filtered x 50 years.\n\nROS: General — cooperative, pleasant. CV — no palpitations. Resp — no shortness of breath. GI/GU — nausea, vomiting, and abdominal pain. MSK — no pain, ROM WDL. Neuro — no headache, no focal deficits.\n\nEXAM: Appears uncomfortable, in moderate distress due to pain of 9/10. T 99.6 °F, HR 95, RR 20, BP 140/84, SpO2 97% RA. Resp: clear bilaterally, regular rate, equal expansion. CV: S1 S2 RR, no murmurs/gallops; no peripheral edema; CR < 3 sec. Abdomen: firm, distended, and tender; hypoactive bowel sounds x4 quadrants. MSK: no joint swelling or erythema. Neuro: no focal deficits.\n\nLABS/IMAGING: CBC, BMP pending. Abdominal X-ray pending.\n\nPLAN: Consult surgery.' },
+      { id: 'wat-n2', type: 'Surgical Admit Note', author: 'Dr. Jack Nelson', time: '12:00', day: -4, text: 'ASSESSMENT: Vernon Watkins is a 69-year-old male with a history of hypertension who presented to the ER with nausea, vomiting, and abdominal pain x 2 days. Upon arrival, the abdomen was firm, distended, and tender. Auscultation of the abdomen revealed hypoactive bowel sounds. Abdominal X-ray indicated perforated bowel with free fluid in abdomen.\n\nPLAN:\n1. Admission: hemicolectomy; admit to medical-surgical unit.\n2. Medication: continue home medications.' },
+      { id: 'wat-n3', type: 'Surgical Progress Note', author: 'Dr. Jack Nelson', time: '07:00', text: 'COURSE OF STAY: Day 4.\n\nMr. Watkins presented to the ER 4 days ago with nausea, vomiting, and severe abdominal pain x 2 days. Emergency hemicolectomy was performed and he was admitted to the MS unit.\n\nASSESSMENT: POD 4. Midline incision noted with no redness, swelling, or drainage. Bowel sounds are hypoactive and patient had a bowel movement yesterday. Patient is frustrated and has refused to ambulate last night and this AM.\n\nPLAN:\n1. Post hemicolectomy — continue home meds; continue antibiotics.\n2. Diet: regular.\n3. Oxygenation: titrate O2 to maintain SpO2 > 92%.' }
+    ],
+    io: [],
+    events: [
+      {
+        id: 'wat-stat',
+        title: 'STAT orders — Nurse Driven Heparin Protocol',
+        instructorNotes: 'From Notion "Stat Orders (Watkins)", "Heparin_1.pdf", and "watkin_stat_lab.pdf". Releases the STAT ABG / D-dimer / cardiac results (respiratory alkalosis with hypoxemia, D-dimer 0.9 — suspected PE). Protocol box checked: B. DVT/PE/AFib. The bolus order is written as 6,500 units (80 units/kg × 80 kg = 6,400, rounded) = 6.5 mL. ANSWER KEY for the drip (80 kg, 25,000 units/500 mL = 50 units/mL): infusion 18 units/kg/hr = 1,440 units/hr = 28.8 mL/hr; repeat aPTT in 6 hours. Enoxaparin is discontinued by the protocol — patient received enoxaparin 40 mg at 0900.',
+        discontinue: ['wat-enox'],
+        orders: [
+          { id: 'wat-s1', cat: 'Activity', text: 'Bed rest', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s2', cat: 'Nursing', text: 'Continuous SpO2 and ECG monitoring', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s3', cat: 'Diagnostics', text: '12-lead ECG', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s4', cat: 'Respiratory', text: 'Oxygen via mask: titrate to maintain SpO2 greater than 92%', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s5', cat: 'Imaging', text: 'Spiral CT scan with contrast', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s6', protocol: 'heparin', cat: 'Medication', text: 'Using weight of 80 kg: initiate Nurse Driven Heparin Protocol. Give bolus from the heparin 10,000 units/10 mL vial, and use the bag for the drip. Maintain heparin flowsheet.', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s7', protocol: 'heparin', cat: 'Medication', text: 'ORDER SET: Anticoagulation Orders (Therapeutic) — Heparin Weight Based Protocol. Indication: DVT/PE/AFib. Weight 80 kg. Discontinue previous anticoagulation (enoxaparin).', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s9', protocol: 'heparin', cat: 'Lab', text: 'aPTT and CBC before starting heparin; CBC every 3 days; repeat aPTT per Heparin Dosing Nomogram', priority: 'STAT', by: 'Dr. Nelson' }
+        ],
+        // From "watkin_stat_lab.pdf".
+        labs: [
+          { id: 'wat-abg', panel: 'Arterial Blood Gas', results: [
+            { t: 'pH', v: 7.49, lo: 7.35, hi: 7.45 },
+            { t: 'PaCO2', v: 31, u: 'mmHg', lo: 35, hi: 45 },
+            { t: 'PaO2', v: 58, u: 'mmHg', lo: 80, hi: 100 },
+            { t: 'HCO3 (arterial)', v: 24, u: 'mEq/L', lo: 22, hi: 26 }
+          ] },
+          { id: 'wat-stat-misc', panel: 'D-dimer & Cardiac', results: [
+            { t: 'D-dimer', v: 0.9, u: 'mcg/mL', ref: '< 0.5', flag: 'H' },
+            { t: 'CK-MB', v: 3.9, u: 'ng/mL', lo: 0, hi: 4.9 },
+            { t: 'Troponin T', v: 0.09, u: 'ng/mL', lo: 0, hi: 0.1 }
+          ] }
+        ],
+        meds: [
+          { id: 'wat-hep-bolus', protocol: 'heparin', weightDose: { unit: 'units', perMl: 1000, source: '10,000 units/10 mL vial', max: 10000 }, name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: '6,500 units', route: 'IV push', freq: 'Once — STAT per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Protocol bolus 80 units/kg × 80 kg = 6,400 units, rounded to the nearest 500 = 6,500 units IV once (maximum 10,000 units). Draw up 6.5 mL from the 10,000 units/10 mL vial. Independent double check with a second RN.', doses: [{ at: 0 }] },
+          { id: 'wat-hep-drip', protocol: 'heparin', weightRate: { unit: 'units/kg/hr', perMl: 50, source: '25,000 units/500 mL D5W', startMax: 2250 }, name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document each aPTT, bolus, hold, and rate change with Titrate (aPTT) on this MAR entry.' }
+        ]
+      }
+    ]
+  },
+
+  /* ------------------------------------------------------------------ */
+  /* LEVEL 3 — PSYCHIATRIC: David Carter                                 */
+  /* ------------------------------------------------------------------ */
+  {
+    id: 'carter',
+    level: 3,
+    experiences: ['psych'],
+    name: { first: 'David', last: 'Carter' },
+    mrn: '12855',
+    dob: '1997-12-03',
+    age: '28 years',
+    sex: 'M',
+    unit: 'Station 32 — Locked Psychiatric Unit',
+    room: '—',
+    service: 'Psychiatry',
+    attending: 'Dr. J. Diego, MD',
+    admitted: { time: '07:00' },
+    scenarioStart: '10:00',
+    admitDx: 'Schizophrenia — acute exacerbation with active hallucinations and delusions',
+    codeStatus: 'Not documented',
+    isolation: 'None',
+    nkda: true,
+    allergies: [],
+    heightCm: 155,
+    weightKg: 91,
+    flags: ['Involuntary emergency detention', 'History of violence — safety checks'],
+    assessmentForms: ['mse', 'wdl-adult', 'pain', 'morse'],
+    emergencyContact: 'Marjorie Carter (mother) — phone on file',
+    demographics: {
+      'Marital status': 'Single',
+      Education: 'College education',
+      'Living situation': 'Lives with mother (Marjorie)',
+      'Legal status': 'Involuntary emergency detention',
+      'Source of history': 'Mother'
+    },
+    hpi: '28-year-old male with a 10-year history of schizophrenia, brought in by police after a violent outburst toward his mother: he threw a table at her when she asked him to take his medications. He has active hallucinations and delusions. Currently admitted as an involuntary emergency detention.',
+    pmh: ['Schizophrenia — 10 years'],
+    psh: ['None reported'],
+    familyHx: ['Autism — brother', 'Depression — maternal aunt'],
+    socialHx: ['Single; lives with mother (Marjorie)', 'College education', 'Current smoker: 1 pack per day', 'Alcohol: occasional beer', 'Drugs: occasional marijuana'],
+    homeMeds: [
+      { name: 'Olanzapine', dose: '10 mg', route: 'PO', freq: 'Daily' },
+      { name: 'Venlafaxine XR', dose: '75 mg', route: 'PO', freq: 'Daily' }
+    ],
+    ros: [
+      ['General', 'Confused, agitated, unkempt, malodorous'],
+      ['Skin', 'Dirty and bruised'],
+      ['Respiratory', 'No cough or shortness of breath'],
+      ['GI', 'No nausea, vomiting, or diarrhea'],
+      ['GU', 'No dysuria or urinary complaints']
+    ],
+    orders: [
+      { id: 'car-o1', cat: 'Admission', text: 'Admit to Station 32 — Locked Unit', time: '07:00', by: 'Dr. J. Diego, MD' },
+      { id: 'car-o2', cat: 'Diet', text: 'Regular diet', time: '07:00', by: 'Dr. J. Diego, MD' },
+      { id: 'car-o8', cat: 'Lab', text: 'CBC with differential', time: '07:00', by: 'Dr. J. Diego, MD' },
+      { id: 'car-o9', cat: 'Lab', text: 'Urine drug screen', time: '07:00', by: 'Dr. J. Diego, MD' },
+      { id: 'car-o10', cat: 'Lab', text: 'Basic metabolic panel', time: '07:00', by: 'Dr. J. Diego, MD' }
+    ],
+    meds: [
+      { id: 'car-olanz', name: 'Olanzapine', dose: '10 mg', route: 'PO', freq: 'Give now, then daily', type: 'scheduled', doses: [{ time: '09:00', given: 'LJ' }, { time: '09:00', day: 1 }] },
+      { id: 'car-venla', name: 'Venlafaxine XR', dose: '75 mg', route: 'PO', freq: 'Daily', type: 'scheduled', doses: [{ time: '09:00', given: 'LJ' }, { time: '09:00', day: 1 }] },
+      { id: 'car-loraz', name: 'Lorazepam', dose: '2 mg', route: 'PO', freq: 'Every 8 hours PRN', type: 'prn', indication: 'Agitation', minIntervalHr: 8, highAlert: true, preAssess: ['RR', 'SBP'] },
+      { id: 'car-halo', name: 'Haloperidol', dose: '5 mg', route: 'PO', freq: 'Every 8 hours PRN', type: 'prn', indication: 'Agitation', minIntervalHr: 8 },
+      { id: 'car-apap', name: 'Acetaminophen', dose: '650 mg', route: 'PO', freq: 'Every 8 hours PRN', type: 'prn', indication: 'Pain', minIntervalHr: 8, preAssess: ['Pain'] }
+    ],
+    vitals: [
+      { time: '07:00', temp: 98.9, tempRoute: 'Axillary', hr: 90, rr: 16, sbp: 134, dbp: 84, spo2: 96, o2: 'Room air', note: 'Admit', by: 'HJ, RN' }
+    ],
+    labs: [
+      { id: 'car-cbc', panel: 'Admission Labs — CBC', time: '07:30', results: [
+        { t: 'Hemoglobin', v: 15.5, u: 'g/dL', lo: 12.1, hi: 15.1 },
+        { t: 'Hematocrit', v: 43, u: '%', lo: 36.1, hi: 44.3 },
+        { t: 'Platelets', v: 185, u: 'K/uL', lo: 140, hi: 400 }
+      ] },
+      { id: 'car-bmp', panel: 'Basic Metabolic Panel', time: '07:30', results: [
+        { t: 'Sodium', v: 140, u: 'mEq/L', lo: 136, hi: 143 },
+        { t: 'Potassium', v: 3.9, u: 'mEq/L', lo: 3.5, hi: 5.0 },
+        { t: 'Chloride', v: 102, u: 'mEq/L', lo: 100, hi: 108 },
+        { t: 'HCO3', v: 24, u: 'mEq/L', lo: 19, hi: 25 },
+        { t: 'BUN', v: 18, u: 'mg/dL', lo: 8, hi: 20 },
+        { t: 'Creatinine', v: 0.7, u: 'mg/dL', lo: 0.6, hi: 1.2 },
+        { t: 'Glucose', v: 92, u: 'mg/dL', lo: 70, hi: 110 }
+      ] },
+      { id: 'car-uds', panel: 'Drug Screen', time: '07:30', results: [
+        { t: 'Urine drug screen', v: 'Negative', ref: 'Negative' }
+      ] }
+    ],
+    imaging: [],
+    notes: [
+      { id: 'car-n1', type: 'Progress Note', author: 'Dr. J. Diego, MD', time: '07:15', text: 'CHIEF COMPLAINT: Violent outburst; active hallucinations and delusions.\n\nHPI: 28-year-old white male with a 10-year history of schizophrenia admitted after a violent outburst. Brought in by police with mother. He threw a table at her when she asked him to take his medications. Currently admitted as involuntary emergency detention. Patient has active hallucinations and delusions.\n\nASSESSMENT: 28-year-old male with history of schizophrenia. Patient\'s mother reports non-compliance with home medication administration. Patient admits to having hallucinations at this time.' },
+      { id: 'car-n2', type: 'Admission Nursing Note', author: 'HJ, RN', time: '08:00', text: 'Patient admitted to the unit; searched per protocol and oriented to the unit and rules. He was disheveled, wearing layers of clothing and was offered assistance with taking a shower and changing his clothing but he refused. He refused his medications and food. He remains seclusive from his peers and remained in his room for most of the shift. At times he looks internally preoccupied and becomes very guarded when asked about hallucinations. He remains on safety checks secondary to his history of violence, but has not demonstrated any overt violence or agitation since he was admitted. He denies suicidal or homicidal ideation when directly questioned.' }
+    ],
+    io: [],
+    events: []
+  }
+];
