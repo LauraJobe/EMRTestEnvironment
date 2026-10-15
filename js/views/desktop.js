@@ -1,9 +1,9 @@
 /*
  * Start-up sequence, like a hospital workstation:
  *   1. a mock Windows desktop with the MEDITECH Expanse (green M) icon,
- *   2. the MEDITECH EXPANSE sign-in,
- *   3. "You are logged in as …" with Launch New Session,
- *   4. the Patient Care Status Board (an empty My List until the student adds patients).
+ *   2. "You are logged in as …" with Launch New Session (no sign-in screen; the session starts as
+ *      the test user in js/config.js, and the name can be changed there),
+ *   3. the Patient Care Status Board (an empty My List until the student adds patients).
  * Signing out returns to the desktop.
  */
 (function () {
@@ -45,7 +45,12 @@
         if (id !== 'meditech') { UI.toast('Only MEDITECH Expanse is available on this training workstation.', 'info'); return; }
         const el = root.querySelector('.dk');
         el.insertAdjacentHTML('beforeend', '<div class="dk-splash" role="status"><div class="dk-splash-card"><span class="dk-m">M</span><div><strong>MEDITECH Expanse</strong><div class="muted small">Starting…</div></div></div></div>');
-        setTimeout(() => { location.hash = '#/signin'; }, 900);
+        // Straight to Launch New Session as the test user (no sign-in screen).
+        setTimeout(() => {
+          if (!Store.session()) Store.setSession({ name: C.defaultUser.name, cred: C.defaultUser.cred, observer: false, signedIn: Date.now(), launched: false });
+          location.hash = '#/launch';
+          App.render();
+        }, 900);
       };
       icons.forEach(b => {
         b.addEventListener('click', () => { icons.forEach(x => x.classList.toggle('on', x === b)); });
@@ -70,7 +75,7 @@
           <div class="xp-env"><span class="xp-minus" aria-hidden="true">⊖</span> ${esc(C.hospitalName)} Test</div>
           <button type="button" class="xp-launch" data-action="launch"><span class="xp-plus" aria-hidden="true">+</span> Launch New Session</button>
         </div>
-        <button type="button" class="xp-signout" data-action="signout">Not you? Sign out</button>
+        <button type="button" class="xp-signout" data-action="rename">Not you? Change name</button>
       </div>`;
     },
     bind(root) {
@@ -79,7 +84,16 @@
         location.hash = '#/census';
         App.render();
       });
-      root.querySelector('[data-action="signout"]').addEventListener('click', () => { Store.clearSession(); location.hash = '#/'; App.render(); });
+      // Optional: put your own name on your charting (the default is the test user).
+      root.querySelector('[data-action="rename"]').addEventListener('click', () => UI.modal({
+        title: 'Change Name',
+        body: `<label class="field"><span>Your name (signs your documentation)</span><input name="name" value="${esc(Store.session().name)}" autocomplete="off"></label>`,
+        buttons: [{ label: 'Cancel' }, { label: 'Save', cls: 'btn-primary', onClick: api => {
+          const name = U.formValues(api.el).name;
+          if (!name) { UI.formError(api.el.querySelector('.modal-body'), 'Enter a name.'); return false; }
+          const s = Store.session(); s.name = name; Store.setSession(s); App.render();
+        } }]
+      }));
     }
   };
 })();
