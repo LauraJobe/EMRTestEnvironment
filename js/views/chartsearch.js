@@ -2,7 +2,8 @@
  * Search Patient's Chart (right-hand column of the chart). Cross-references every part of the
  * chart: problems and history, allergies, orders, medications, results, imaging, provider and
  * nursing notes, documents, vital signs, administrative data, and everything the student has
- * documented. Each match links to the chart screen where it lives.
+ * documented. A search opens the chart tab with the most matches (no pop-up), highlights them, and
+ * shows a strip linking to every other tab that matches.
  */
 (function () {
   'use strict';
@@ -36,7 +37,7 @@
     add('Special Indicators', 'summary', 'Code status: ' + p.codeStatus, null, [p.advanceDirective, p.isolation ? 'Isolation: ' + p.isolation : '']);
     (p.homeMeds || []).forEach(m => add('Home Medications', 'meds', m.name, null, m));
     p.orders.forEach(o => add('Orders', 'orders', o.text, o.time, [o.cat, o.priority, o.by, o.detail, o.instructions]));
-    p.meds.forEach(m => add('Medications', 'mar', Model.medLabel(m), m.orderTime, [m.status, m.indication, m.instructions, m.holdReason, m.orderedBy]));
+    p.meds.forEach(m => add('Medications', 'meds', Model.medLabel(m), m.orderTime, [m.status, m.indication, m.instructions, m.holdReason, m.orderedBy]));
     p.labs.forEach(l => add('Lab Results', 'results', l.panel, l.time, (l.results || []).map(r => `${r.t} ${r.v}${r.u ? ' ' + r.u : ''}${Model.labFlag(r) ? ' ' + Model.labFlag(r) : ''}`)));
     if (p.labsPending) add('Lab Results', 'results', 'Pending', null, p.labsPending);
     p.imaging.forEach(r => add('Imaging', 'results', r.study, r.time, [r.text, r.findings, r.impression, r.report]));
@@ -50,7 +51,7 @@
     active('notes').forEach(e => add('Nursing Notes', 'notes', `${e.data.type || 'Note'} — ${e.user.name}`, e.time, e.data));
     active('assess').forEach(e => add('Assessments', 'assess', `${e.data.form || e.data.title || 'Assessment'} — ${e.user.name}`, e.time, e.data));
     active('vitals').forEach(e => add('Vital Signs', 'vitals', `Vital signs — ${e.user.name}`, e.time, vitalText(e.data)));
-    active('mar').forEach(e => add('Medication Administration', 'mar', `${e.data.medName} — ${e.data.action}`, e.time, [e.data.dose, e.data.rate, e.data.route, e.data.site, e.data.reason, e.data.comment, e.user.name]));
+    active('mar').forEach(e => add('Medication Administration', 'meds', `${e.data.medName} — ${e.data.action}`, e.time, [e.data.dose, e.data.rate, e.data.route, e.data.site, e.data.reason, e.data.comment, e.user.name]));
     active('io').forEach(e => add('Intake & Output', 'io', 'Intake & output', e.time, e.data));
     active('careplan').forEach(e => add('Plan of Care', 'careplan', 'Plan of care', e.time, e.data));
     active('tar').forEach(e => add('Transfusion', 'tar', 'Transfusion record', e.time, e.data));
@@ -63,17 +64,6 @@
       v.pain != null && `Pain ${v.pain}`, v.by].filter(Boolean).join(' · ');
   }
 
-  // Escaped snippet around the first match, with every search word highlighted.
-  function snippet(text, words) {
-    const low = text.toLowerCase();
-    const at = Math.max(0, Math.min(...words.map(w => { const i = low.indexOf(w); return i < 0 ? Infinity : i; })));
-    const start = Math.max(0, (isFinite(at) ? at : 0) - 60);
-    let s = (start ? '…' : '') + text.slice(start, start + 220) + (text.length > start + 220 ? '…' : '');
-    s = esc(s);
-    words.forEach(w => { const re = new RegExp(esc(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'); s = s.replace(re, m => `<mark>${m}</mark>`); });
-    return s;
-  }
-
   // Common clinical abbreviations, so "hemoglobin" also finds "Hgb" and "bp" finds "blood pressure".
   const SYN = [['hemoglobin', 'hgb'], ['hematocrit', 'hct'], ['potassium', 'k'], ['sodium', 'na'], ['chloride', 'cl'], ['magnesium', 'mg'],
     ['white blood', 'wbc'], ['platelet', 'plt'], ['blood urea', 'bun'], ['creatinine', 'creat'], ['glucose', 'bg'], ['troponin', 'trop'],
@@ -84,28 +74,85 @@
   // Whole-word test for very short terms (k, na, hr) so they don't match inside other words.
   const has = (hay, t) => t.length <= 3 ? new RegExp('(^|[^a-z0-9])' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z0-9]|$)').test(hay) : hay.includes(t);
 
-  function open(p, query) {
+  // Chart tabs in the order to prefer when several have the same number of matches.
+  const PRIORITY = ['results', 'meds', 'orders', 'provnotes', 'notes', 'history', 'summary', 'vitals', 'assess', 'io', 'careplan', 'admin', 'documents', 'tar'];
+  const tabLabel = t => (Views[t] && Views[t].label) || t;
+  let active = null;   // { pid, q, hl, tabs: [{ tab, n }], scroll }
+
+  // Search, then open the chart tab with the most matches (no pop-up). The matches are highlighted
+  // there, and a strip at the top of the screen links to every other tab that matches.
+  function run(p, query) {
     const q = String(query || '').trim();
-    if (!q) return;
+    if (!q) { active = null; App.render(); return; }
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-    const doc = Store.doc(p.id);
-    const hits = index(p, doc).filter(e => { const hay = (e.title + ' ' + e.text).toLowerCase(); return words.every(w => alts(w).some(t => has(hay, t))); });
-    // Highlight the search words and their abbreviations (skipping one- and two-letter ones).
+    const hits = index(p, Store.doc(p.id)).filter(e => { const hay = (e.title + ' ' + e.text).toLowerCase(); return words.every(w => alts(w).some(t => has(hay, t))); });
+    if (!hits.length) { active = null; UI.toast(`Nothing in this chart matches “${q}”. Try a drug name, lab test, or diagnosis.`, 'info'); App.render(); return; }
+    const count = {};
+    hits.forEach(h => { count[h.tab] = (count[h.tab] || 0) + 1; });
+    const tabs = Object.keys(count).map(tab => ({ tab, n: count[tab] }))
+      .sort((a, b) => b.n - a.n || PRIORITY.indexOf(a.tab) - PRIORITY.indexOf(b.tab));
     const hl = Array.from(new Set(words.flatMap(alts))).filter(t => t.length > 2 || words.includes(t));
-    const groups = {};
-    hits.forEach(h => { (groups[h.section] = groups[h.section] || []).push(h); });
-    UI.modal({
-      title: `Search Patient's Chart — “${q}”`,
-      wide: true,
-      body: `<p class="muted small">${esc(p.name.last)}, ${esc(p.name.first)} · MRN ${esc(p.mrn)} — ${hits.length} match${hits.length === 1 ? '' : 'es'}. Select a result to open it.</p>
-        ${hits.length ? Object.keys(groups).map(sec => `<section class="cs-group"><h3>${esc(sec)} <span class="muted">(${groups[sec].length})</span></h3>
-          ${groups[sec].map(h => `<a class="cs-hit" href="#/patient/${esc(p.id)}/${esc(h.tab)}" data-go><div class="cs-title">${snippet(h.title, hl)}${h.time ? ` <span class="muted">${esc(U.fmtDT(h.time))}</span>` : ''}</div>
-            ${h.text ? `<div class="cs-text">${snippet(h.text, hl)}</div>` : ''}</a>`).join('')}</section>`).join('')
-          : '<p class="empty">Nothing in this chart matches. Try fewer or different words (for example a drug name, lab test, or diagnosis).</p>'}`,
-      onOpen(api) { api.el.querySelectorAll('[data-go]').forEach(a => a.addEventListener('click', () => api.close())); },
-      buttons: [{ label: 'Close' }]
-    });
+    active = { pid: p.id, q, hl, tabs, scroll: true, tried: [tabs[0].tab] };
+    const target = `#/patient/${p.id}/${tabs[0].tab}`;
+    if (location.hash === target) App.render(); else location.hash = target;
   }
 
-  Views.chartSearch = { index, open };
+  // Wrap each match on the current screen in <mark>.
+  function highlight(root, terms) {
+    if (!terms.length) return [];
+    const re = new RegExp(terms.map(t => { const e = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return t.length <= 3 ? `\\b${e}\\b` : e; }).join('|'), 'gi');
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n =>
+      !n.nodeValue.trim() || n.parentNode.closest('script, style, textarea, input, select, option, button, .cs-strip, mark') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+    const nodes = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.push(n);
+    const marks = [];
+    nodes.forEach(n => {
+      const text = n.nodeValue;
+      re.lastIndex = 0;
+      if (!re.test(text)) return;
+      re.lastIndex = 0;
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      text.replace(re, (m, off) => {
+        frag.appendChild(document.createTextNode(text.slice(last, off)));
+        const mk = document.createElement('mark'); mk.className = 'cs-mark'; mk.textContent = m; frag.appendChild(mk); marks.push(mk);
+        last = off + m.length;
+        return m;
+      });
+      frag.appendChild(document.createTextNode(text.slice(last)));
+      n.parentNode.replaceChild(frag, n);
+    });
+    return marks;
+  }
+
+  // After each chart render: the results strip, highlights, and the search box keeps the term.
+  function decorate(app, p) {
+    if (!active) return;
+    if (active.pid !== p.id) { active = null; return; }   // another patient: the search ends
+    const content = app.querySelector('#content');
+    if (!content) return;
+    const cur = (location.hash.split('/')[3] || 'summary');
+    const input = app.querySelector('.side-search input');
+    if (input) input.value = active.q;
+    const marks = highlight(content, active.hl);
+    // Just searched and nothing visible here (e.g., a match in a field this screen doesn't show):
+    // move on to the next matching tab until one shows the match.
+    if (active.scroll && !marks.length) {
+      const next = active.tabs.find(t => !active.tried.includes(t.tab));
+      if (next) { active.tried.push(next.tab); location.hash = `#/patient/${p.id}/${next.tab}`; return; }
+      active.scroll = false;
+    }
+    content.insertAdjacentHTML('afterbegin', `<div class="cs-strip" role="status"><span>🔍 <strong>“${esc(active.q)}”</strong> found in:</span>
+      ${active.tabs.map(t => `<a class="cs-chip ${t.tab === cur ? 'on' : ''}" href="#/patient/${esc(p.id)}/${esc(t.tab)}">${esc(tabLabel(t.tab))} (${t.n})</a>`).join('')}
+      ${marks.length ? `<span class="muted small">${marks.length} highlighted on this screen</span>` : '<span class="muted small">Not shown on this screen — try another tab.</span>'}
+      <button type="button" class="cs-clear" aria-label="Clear search">✕</button></div>`);
+    content.querySelector('.cs-clear').addEventListener('click', () => { active = null; App.render(); });
+    if (active.scroll && marks.length) {
+      active.scroll = false;
+      const r = marks[0].getBoundingClientRect();
+      if (r.top < 120 || r.bottom > window.innerHeight - 20) marks[0].scrollIntoView({ block: 'center' });   // only when off-screen
+    }
+  }
+
+  Views.chartSearch = { index, run, decorate, clear: () => { active = null; } };
 })();

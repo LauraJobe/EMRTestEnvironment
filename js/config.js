@@ -12,7 +12,7 @@ window.EHR_CONFIG = {
   defaultUser: { name: 'Test Student', cred: 'SN' },
   // Shown on the sign-in screen. Also bump ?v= in index.html and labels.html when files change,
   // so browsers (older iPads especially) load the new files instead of a saved copy.
-  version: '2026.10.15-2',
+  version: '2026.10.15-4',
 
   // PIN that unlocks Instructor Tools. This is a convenience lock only,
   // not real security — anyone who can read the page source can see it.

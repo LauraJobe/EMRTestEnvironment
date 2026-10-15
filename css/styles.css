@@ -836,6 +836,12 @@ input.field-alert { border: 2px solid var(--danger) !important; background: #fde
 .side-search input { flex: 1; min-width: 0; border: none; height: 30px; font-style: italic; background: transparent; }
 .side-search input:focus { outline: none; }
 .side-search:focus-within { box-shadow: 0 0 0 2px #8fd19b; }
+.cs-strip { position: sticky; top: 56px; z-index: 20; box-shadow: 0 2px 6px rgba(0,0,0,.12); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 12px; padding: 6px 10px; background: #fffbe0; border: 1px solid #e4cf6a; border-radius: 4px; font-size: 13px; }
+.no-flexgap .cs-strip > * { margin: 0 6px 4px 0; }
+.cs-chip { padding: 2px 9px; border: 1px solid #b6c2ce; border-radius: 12px; background: #fff; color: #1a5fa8; text-decoration: none; }
+.cs-chip.on { background: #1a5fa8; border-color: #1a5fa8; color: #fff; font-weight: 700; }
+.cs-clear { margin-left: auto; border: 1px solid #b6c2ce; border-radius: 4px; background: #fff; width: 26px; height: 24px; cursor: pointer; }
+mark.cs-mark { background: #ffe066; padding: 0 1px; border-radius: 2px; }
 .cs-group h3 { font-size: 15px; margin: 14px 0 6px; border-bottom: 1px solid #d5dbe1; padding-bottom: 3px; }
 .cs-hit { display: block; padding: 6px 8px; border-radius: 4px; color: #1b2733; text-decoration: none; }
 .cs-hit:hover, .cs-hit:focus { background: #e3eef9; }
@@ -925,3 +931,8 @@ input.field-alert { border: 2px solid var(--danger) !important; background: #fde
   .ho-head { grid-template-columns: 56px 1fr 1fr; } .ho-right { grid-column: 2 / -1; }
   .ho-body, .ho-widgets { grid-template-columns: 1fr; }
 }
+.ho-sum-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fcf6dc; border-bottom: 1px solid #e6d9a2; }
+.ho-sum-bar .tk-btn { margin-left: auto; text-decoration: none; }
+.no-flexgap .ho-sum-bar > * + * { margin-left: 8px; }
+.ho-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 10px; align-items: start; }
+@media (max-width: 1100px) { .ho-sum { grid-template-columns: 1fr; } }

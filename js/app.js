@@ -248,7 +248,8 @@
           </div>${sidePanel(p)}</div>`;
         if (view.bind) view.bind(app.querySelector('#content'), p, doc);
         const ss = app.querySelector('.side-search');
-        if (ss) ss.addEventListener('submit', e => { e.preventDefault(); Views.chartSearch.open(p, ss.q.value); });
+        if (ss) ss.addEventListener('submit', e => { e.preventDefault(); Views.chartSearch.run(p, ss.q.value); });
+        Views.chartSearch.decorate(app, p);
         document.title = `${p.name.last}, ${p.name.first} — ${view.label} · ${C.systemName}`;
         if (App._lastKey === location.hash) window.scrollTo(0, scroll);
       } else if (r.page === 'instructor') {
