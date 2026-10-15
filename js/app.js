@@ -205,12 +205,12 @@
       const r = route();
       const s = Store.session();
       App.current = null;
-      // Start-up: desktop → MEDITECH sign-in → Launch New Session → status board.
+      // Start-up: desktop → Launch New Session → status board.
       if (!Store.session()) {
-        const screen = r.page === 'signin' ? Screens.login : Screens.desktop;
-        app.innerHTML = screen.render();
-        screen.bind(app);
-        document.title = r.page === 'signin' ? 'MEDITECH Expanse — Sign In' : 'Workstation';
+        // No sign-in screen: the desktop's MEDITECH icon starts the session.
+        app.innerHTML = Screens.desktop.render();
+        Screens.desktop.bind(app);
+        document.title = 'Workstation';
         return;
       }
       if (!Store.session().launched) {

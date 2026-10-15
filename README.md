@@ -4,13 +4,33 @@ A copy of the ATU Simulation Hospital SimEHR set up as an **EMR training environ
 
 **What is different from the ATU Meditech Simulation Hospital site**
 
-- **Start-up, like a hospital workstation:** a mock **Windows desktop** with a green **M MEDITECH Expanse** icon (double-click, or tap on a tablet; other icons say only MEDITECH is available) → the **MEDITECH EXPANSE** sign-in (user name, role, chart mode — no experience or level) → **“You are logged in as …”** with **⊕ Launch New Session** → the status board. Signing out (User ▸ Sign Out, or Close on the status board) returns to the desktop.
+- **Start-up, like a hospital workstation:** a mock **Windows desktop** with a green **M MEDITECH Expanse** icon (double-click, or tap on a tablet; other icons say only MEDITECH is available) → **“You are logged in as …”** with **⊕ Launch New Session** → the status board. There is **no sign-in screen**: the session starts as the test user in `js/config.js` (`defaultUser`, *Test Student, SN*); **Not you? Change name** on the launch screen puts the student's own name on their charting. Signing out (User ▸ Sign Out, or Close on the status board) returns to the desktop.
 - **Blank status board:** every student starts with an empty **My List** and adds patients from the **☰ (3-line) menu** next to their name: *Add Patients…* (search by name, MRN, account, room; filter by unit), *Remove Selected Patient*, *Clear My List*, *Refresh*. Each user's list is kept on the device for their next session. Faculty mode adds *All Test Accounts* to the menu.
 - **Toolbar:** **Return To** (green **E**) opens the home menu: *Patient Care Status Board* and every chart you have open (✕ closes one, *Close All* closes them all). **Home ▾**, then **Chart**, **Document ▾**, **Orders**, **Discharge** in the middle (on the status board they act on the selected patient), and **Workload**, **Menu**, **More**, **Help**, **User** (name, chart mode, Sign Out), **Close** on the right. Close closes the open chart; on the status board it signs you out.
 - **Patient Care Status Board** (tracker): your name with the **☰ menu**, ↻ Refresh, and **Find Patient** (name, MRN, account number, unit, or room). Buttons: Open Patient Summary and Open Hand Off. Each row shows the patient, reason for visit, alerts, code status/allergies/isolation, an **Order** button, the latest vital signs (abnormal values highlighted), and chips for new orders, MAR (red when a dose is overdue), new results, and interventions due. The **▸ arrow** drops down account number, MRN, language, interpreter, height, weight, allergies, indicators, recent orders, consults, next task, meds on hold, isolation, and advance directive.
 - **Chart:** folder tabs on the left (including **Workload Items**) and the patient column on the right: name, age/sex/DOB, MRN, location, height/weight with **BSA/BMI**, reason for visit, **Acc#**, code status, and **Search Patient's Chart**. The search covers the whole chart — problems and history, allergies, indicators, orders, medications, lab results, imaging, provider and nursing notes, documents, vital signs, administrative data, and everything students have charted (assessments, MAR, I&O, plan of care, transfusions). It understands common abbreviations (Hgb, K, BP, Levophed…), and each match opens the screen it came from.
 - **Discharge** is turned off so every test account stays available.
 - Saved charting is kept separate from the ATU Meditech site on the same device (`storagePrefix` in `js/config.js`).
+
+- **Test patients only:** this environment uses its own bank of **13 fictional test accounts** in `js/data/test-patients.js` — none of the ATU simulation patients (those files and images were removed here):
+
+  | Unit | Room | Test patient | Reason for visit |
+  |---|---|---|---|
+  | Emergency Department | ED Bay 3 | Martinez, Elena (45 F) | Chest pain — rule out ACS |
+  | Emergency Department | ED Bay 7 | Okafor, James (29 M) | Asthma exacerbation |
+  | Intensive Care | ICU-02 | Whitaker, Gerald (67 M) | Sepsis from pneumonia (norepinephrine) |
+  | Intensive Care | ICU-05 | Delgado, Rosa (59 F) | Diabetic ketoacidosis (insulin drip; Spanish interpreter) |
+  | Progressive Care | PCU-14 | Nguyen, Thomas (77 M) | Atrial fibrillation with RVR (diltiazem drip; DNR) |
+  | Telemetry | 220-1 | Brooks, Angela (66 F) | Heart failure exacerbation |
+  | Orthopedics | 412-2 | Hughes, Walter (71 M) | POD 1 right total knee (penicillin allergy) |
+  | Medical-Surgical | 307-2 | Robinson, Denise (53 F) | Cellulitis; basal-bolus insulin |
+  | Medical-Surgical | 310-1 | Ali, Samir (81 M) | UTI with acute confusion; fall risk |
+  | Surgical | 318-1 | Turner, Robert (58 M) | Small bowel obstruction; NG tube |
+  | Labor & Delivery | LDR-4 | Lopez, Maria (27 F) | Induction of labor (oxytocin; GBS positive) |
+  | Pediatrics | PEDS-08 | Bennett, Noah (6 M) | Gastroenteritis with dehydration |
+  | Behavioral Health | BH-06 | Fischer, Emily (34 F) | Depression with suicidal ideation |
+
+  Each has orders (some new to acknowledge), scheduled/PRN/IV medications on the MAR (earlier doses documented by the prior shift), labs, vital signs, and an admission note. To add one, copy an entry in `js/data/test-patients.js` (see `docs/ADDING-PATIENTS.md`).
 
 The rest of this README describes the features the two sites share.
 

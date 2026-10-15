@@ -7,9 +7,12 @@ window.EHR_CONFIG = {
   systemName: 'SimEHR',
   // Shown on the status board and sign-in: this copy is an EMR training environment with a bank of test accounts.
   environmentName: 'EMR Training Environment (TEST)',
+  // No sign-in: opening MEDITECH Expanse from the desktop starts a session as this test user.
+  // (The name can be changed on the Launch New Session screen; it signs every entry.)
+  defaultUser: { name: 'Test Student', cred: 'SN' },
   // Shown on the sign-in screen. Also bump ?v= in index.html and labels.html when files change,
   // so browsers (older iPads especially) load the new files instead of a saved copy.
-  version: '2026.10.12-3',
+  version: '2026.10.15-1',
 
   // PIN that unlocks Instructor Tools. This is a convenience lock only,
   // not real security — anyone who can read the page source can see it.

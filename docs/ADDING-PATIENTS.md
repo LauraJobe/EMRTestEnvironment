@@ -1,8 +1,11 @@
-# Adding and editing simulation patients
+# Adding and editing test patients
+
+In this training environment the test accounts are in `js/data/test-patients.js`. Each one is a short description passed to `pt()`, which fills in the standard orders, defaults, and an admission note — copy an entry and change the id, MRN, name, and clinical details. The field reference below applies to those descriptions too.
+
 
 There are two ways to add patients:
 
-1. **Permanent (for everyone):** add an object to the list in `js/data/patients.js` and push to GitHub. Copy an existing patient as a starting point.
+1. **Permanent (for everyone):** add an entry to the list in `js/data/test-patients.js` and push to GitHub. Copy an existing test patient as a starting point.
 2. **Quick, on one computer:** fill in `docs/patient-template.json` and use **Instructor Tools → Add Patient (JSON)**. The patient is saved only in that browser.
 
 ## Times
