@@ -213,6 +213,142 @@
     });
   }
 
+  /* ---------------- Patient hand off and patient summary (half screen, like Expanse) ----------------
+   * Open Hand Off and Open Patient Summary split the status board: the patient list narrows on the
+   * left and the selected patient's handoff (SBAR note + widgets) or summary opens on the right.
+   * The chart is not opened. Handoff notes are saved as nursing notes ("Shift Handoff (SBAR)"). */
+  let pane = null;                        // null, 'handoff', or 'summary' (half-screen beside the list)
+  let hoEdit = null;                      // { pid, text } while writing a handoff
+  const HO_TYPE = 'Shift Handoff (SBAR)';
+  const handoffs = doc => doc.notes.filter(e => e.status === 'active' && e.data.type === HO_TYPE).sort((a, b) => b.time - a.time);
+  const reviewOf = (doc, id) => doc.ack.find(e => e.status === 'active' && e.data.kind === 'handoff' && e.data.ref === id);
+
+  // A starting SBAR draft from the chart; the nurse edits it before saving.
+  function sbarDraft(p, doc) {
+    const v = Model.vitals(p, doc).find(r => !r.entry || r.entry.status === 'active') || {};
+    const abn = [];
+    [...p.labs].sort((a, b) => b.time - a.time).forEach(l => (l.results || []).forEach(r => {
+      const f = Model.labFlag(r);
+      if (f && !abn.some(x => x.t === r.t)) abn.push({ t: r.t, txt: `${r.t} ${r.v}${r.u ? ' ' + r.u : ''} (${f})` });
+    }));
+    const allergies = p.nkda || !(p.allergies || []).length ? 'NKDA' : p.allergies.map(a => `${a.agent} (${a.reaction})`).join(', ');
+    const next = Views.worklist.due(p, doc).slice(0, 3).map(x => `${U.fmtTime(x.time)} ${x.text || x.name}`);
+    return `SITUATION\n${p.name.first} ${p.name.last}, ${String(p.age).replace(' years', '')} ${p.sex}, ${Model.location(p)}. Reason for visit: ${Model.chiefComplaint(p)} — ${p.admitDx}. Code status: ${p.codeStatus}.\n\n`
+      + `BACKGROUND\nHistory: ${(p.pmh || []).join(', ') || 'none'}. Allergies: ${allergies}. Admitted ${U.fmtDate(p.admitTime)}; attending ${p.attending}.\n\n`
+      + `ASSESSMENT\nLatest vital signs${v.time ? ' (' + U.fmtTime(v.time) + ')' : ''}: T ${v.temp != null ? v.temp : '—'}, HR ${v.hr != null ? v.hr : '—'}, RR ${v.rr != null ? v.rr : '—'}, BP ${v.sbp != null ? v.sbp + '/' + v.dbp : '—'}, SpO2 ${v.spo2 != null ? v.spo2 + '%' : '—'}${v.o2 ? ' on ' + v.o2 : ''}${v.pain != null ? ', pain ' + v.pain + '/10' : ''}.\nAbnormal results: ${abn.slice(0, 6).map(x => x.txt).join('; ') || 'none'}.\n[Add your assessment findings.]\n\n`
+      + `RECOMMENDATION\nDue next: ${next.join('; ') || 'nothing scheduled'}.\n[Add pending items, concerns, and what to watch for.]`;
+  }
+
+  // part 'vl' = only the vitals and lab widgets (used by the patient summary).
+  function hoWidgets(p, doc, part) {
+    const rows = Model.vitals(p, doc).filter(r => !r.entry || r.entry.status === 'active');
+    const cur = rows[0] || {}, first = rows[rows.length - 1] || {};
+    const vrow = (label, key, fmt) => {
+      const show = r => r[key] == null || r[key] === '' ? '—' : (fmt ? fmt(r) : r[key]);
+      const f = r => key === 'bp' ? (Model.flag(p, 'sbp', r.sbp) || Model.flag(p, 'dbp', r.dbp)) : Model.flag(p, key, r[key]);
+      return `<tr><th>${label}</th><td class="${f(first) ? 'ho-abn' : ''}">${esc(String(show(first)))}${f(first) ? ' ' + f(first) : ''}</td><td class="${f(cur) ? 'ho-abn' : ''}">${esc(String(show(cur)))}${f(cur) ? ' ' + f(cur) : ''}</td></tr>`;
+    };
+    const vitals = rows.length ? `<table class="ho-tbl"><thead><tr><th></th><th>INITIAL<br><small>${esc(U.fmtDT(first.time))}</small></th><th>CURRENT<br><small>${esc(U.fmtDT(cur.time))}</small></th></tr></thead><tbody>
+      ${vrow('BP', 'sbp', r => r.sbp != null ? `${r.sbp}/${r.dbp}` : '—')}${vrow('Pulse', 'hr')}${vrow('Resp', 'rr')}${vrow('Temp', 'temp')}${vrow('O2 Sat', 'spo2')}
+      <tr><th>O2 Delivery</th><td>${esc(first.o2 || '—')}</td><td>${esc(cur.o2 || '—')}</td></tr></tbody></table>` : '<p class="muted">No vital signs charted.</p>';
+    const last = {};
+    [...p.labs].sort((a, b) => b.time - a.time).forEach(l => (l.results || []).forEach(r => { if (!last[r.t]) last[r.t] = { r, time: l.time }; }));
+    const labs = Object.keys(last).length ? `<table class="ho-tbl">${Object.keys(last).map(t => { const { r, time } = last[t]; const f = Model.labFlag(r); const ref = Model.labRef(r);
+      return `<tr><th>${esc(t)}${ref ? `<br><small>(${esc(ref)})</small>` : ''}</th><td class="${f ? 'ho-abn' : ''}">${esc(String(r.v))}${r.u ? ' ' + esc(r.u) : ''}${f ? ' ' + esc(f) : ''}</td><td class="muted">${esc(U.fmtDate(time))}</td></tr>`; }).join('')}</table>` : '<p class="muted">No results.</p>';
+    const allergies = p.nkda || !(p.allergies || []).length ? '<p>No Known Drug Allergies</p>' : p.allergies.map(a => `<p class="tk-red">${esc(a.agent)} <span class="muted">— ${esc(a.reaction)}</span></p>`).join('');
+    const problems = [p.admitDx, ...(p.pmh || [])].map(x => `<p>${esc(x)}</p>`).join('');
+    const w = (title, body) => `<section class="ho-w"><h3>▾ ${esc(title)}</h3>${body}</section>`;
+    if (part === 'vl') return w('Vitals — Initial & Most Recent', vitals) + w('Lab Results Last Value', labs);
+    return `<div class="ho-widgets"><div>${w('Vitals — Initial & Most Recent', vitals)}${w('Lab Results Last Value', labs)}</div>
+      <div>${w('Contact Detail', `<p><strong>Emergency contact:</strong> ${esc(p.emergencyContact || '—')}</p><p><strong>Language:</strong> ${esc(Model.language(p))}${p.interpreter ? ' (interpreter needed)' : ''}</p>`)}${w('Allergies', allergies)}${w('Active Problems', problems)}</div></div>`;
+  }
+
+  function paneHead(p) {
+    const initials = (p.name.first[0] + p.name.last[0]).toUpperCase();
+    const allergy = p.nkda || !(p.allergies || []).length ? 'NKDA' : p.allergies.map(a => a.agent).join(', ');
+    return `<div class="ho-head">
+        <div class="avatar ho-avatar" aria-hidden="true">${esc(initials)}</div>
+        <div><div class="ho-name">${esc(p.name.last)}, ${esc(p.name.first)}</div><div>${esc(String(p.age).replace(' years', ''))} ${esc(p.sex)} • ${esc(U.fmtDOB(p.dob))}</div><div>${esc(Model.location(p))}</div></div>
+        <div><div><em>Code Status:</em> <span class="tk-red">${esc(p.codeStatus)}</span></div><div><em>Allergy/Adv:</em> ${esc(allergy)}</div></div>
+        <div class="ho-right"><div><em>Admit Date:</em> ${esc(U.fmtDT(p.admitTime))}</div><div><em>Account #:</em> ${esc(Model.account(p))}</div><div><em>Attending:</em> ${esc(p.attending)}</div></div>
+      </div>`;
+  }
+
+  // Patient summary half screen: the chart at a glance without opening it.
+  function summaryPane(p) {
+    const doc = Store.doc(p.id);
+    const w = (title, body) => `<section class="ho-w"><h3>▾ ${esc(title)}</h3>${body}</section>`;
+    const unacked = Model.unackedOrders(p, doc).map(o => o.id);
+    const orders = [...p.orders].sort((a, b) => b.time - a.time).slice(0, 8)
+      .map(o => `<tr><td>${esc(U.fmtDT(o.time))}</td><td>${esc(o.text)}${unacked.includes(o.id) ? ' ' + UI.badge('NEW', 'new') : ''}</td></tr>`).join('');
+    const meds = p.meds.filter(m => m.status === 'Active').map(m => {
+      const next = (m.doseTimes || []).map(dt => ({ dt, s: Model.doseStatus(p, doc, m, dt).code })).find(x => ['due', 'overdue', 'future'].includes(x.s));
+      return `<tr><td><strong>${esc(m.name)}</strong> ${esc([m.dose, m.route].filter(x => x && x !== '—').join(' '))}<div class="muted small">${esc(m.freq)}</div></td>
+        <td class="${next && next.s === 'overdue' ? 'tk-red' : ''}">${m.type === 'prn' ? 'PRN' : m.type === 'continuous' ? 'Infusing' : next ? (next.s === 'overdue' ? 'Overdue ' : next.s === 'due' ? 'Due ' : 'Next ') + esc(U.fmtTime(next.dt.time)) : '—'}</td></tr>`;
+    }).join('');
+    const tasks = Views.worklist.due(p, doc).slice(0, 6).map(x => `<tr><td class="${x.overdue ? 'tk-red' : ''}">${esc(U.fmtTime(x.time))}</td><td>${esc(x.text || x.name)}</td></tr>`).join('');
+    const io = Model.io(p, doc);
+    const inn = io.filter(r => r.kind === 'in').reduce((n, r) => n + (Number(r.amt) || 0), 0), out = io.filter(r => r.kind === 'out').reduce((n, r) => n + (Number(r.amt) || 0), 0);
+    return `<section class="ho-pane" aria-label="Patient summary — ${esc(p.name.last)}, ${esc(p.name.first)}">
+      ${paneHead(p)}
+      <div class="ho-sum-bar"><strong>Patient Summary</strong> <span class="muted small">— ${esc(Model.chiefComplaint(p))} · ${esc(p.admitDx)}</span>
+        <a class="tk-btn" href="#/patient/${esc(p.id)}/summary">Open Chart</a></div>
+      <div class="ho-sum">
+        <div>${hoWidgets(p, doc, 'vl')}</div>
+        <div>${w('Current Medications', meds ? `<table class="ho-tbl">${meds}</table>` : '<p class="muted">No active medications.</p>')}
+          ${w('Orders', orders ? `<table class="ho-tbl">${orders}</table>` : '<p class="muted">No orders.</p>')}</div>
+        <div>${w('Due Next', tasks ? `<table class="ho-tbl">${tasks}</table>` : '<p class="muted">Nothing due.</p>')}
+          ${w('Intake & Output (charted)', `<p>In: <strong>${inn} mL</strong> · Out: <strong>${out} mL</strong> · Balance: <strong>${inn - out >= 0 ? '+' : ''}${inn - out} mL</strong></p>`)}
+          ${w('Allergies', p.nkda || !(p.allergies || []).length ? '<p>No Known Drug Allergies</p>' : p.allergies.map(a => `<p class="tk-red">${esc(a.agent)} <span class="muted">— ${esc(a.reaction)}</span></p>`).join(''))}
+          ${w('Active Problems', [p.admitDx, ...(p.pmh || [])].map(x => `<p>${esc(x)}</p>`).join(''))}
+          ${w('Contact Detail', `<p>${esc(p.emergencyContact || '—')}</p><p><strong>Language:</strong> ${esc(Model.language(p))}${p.interpreter ? ' (interpreter needed)' : ''}</p>`)}</div>
+      </div>
+    </section>`;
+  }
+
+  function handoffPane(p) {
+    const doc = Store.doc(p.id);
+    const list = handoffs(doc);
+    const latest = list[0];
+    const rev = latest && reviewOf(doc, latest.id);
+    const editing = hoEdit && hoEdit.pid === p.id;
+    return `<section class="ho-pane" aria-label="Hand off — ${esc(p.name.last)}, ${esc(p.name.first)}">
+      ${paneHead(p)}
+      <div class="ho-body">
+        <div class="ho-note">
+          <div class="ho-note-h"><strong>${latest ? `${esc(latest.user.name)}, ${esc(U.fmtDT(latest.time))}` : 'No handoff written yet'}</strong><button type="button" class="tk-btn" data-ho="history" ${list.length ? '' : 'disabled'}>History</button></div>
+          <div class="ho-note-btns"><button type="button" class="tk-btn" data-ho="new">New</button><button type="button" class="tk-btn" data-ho="prev" ${latest ? '' : 'disabled'}>New from previous</button>
+            <button type="button" class="tk-btn" data-ho="review" ${latest && !rev && !editing ? '' : 'disabled'}>Mark Reviewed</button></div>
+          ${editing ? `<form class="ho-edit"><textarea name="text" rows="18" aria-label="Handoff note">${esc(hoEdit.text)}</textarea>
+              <div class="form-actions"><button type="button" class="btn" data-ho="cancel">Cancel</button><button type="submit" class="btn btn-primary">Save Handoff</button></div></form>`
+            : latest ? `<div class="ho-text">${U.nl2br(latest.data.text)}</div>${rev ? `<p class="muted small">✔ Reviewed by ${esc(rev.user.name)} ${esc(U.fmtDT(rev.time))}</p>` : ''}`
+            : '<p class="muted">Select <strong>New</strong> to write a handoff. It starts from an SBAR draft built from the chart.</p>'}
+        </div>
+        ${hoWidgets(p, doc)}
+      </div>
+    </section>`;
+  }
+
+  function bindHandoff(root, p) {
+    const ho = (k, fn) => root.querySelectorAll(`[data-ho="${k}"]`).forEach(b => b.addEventListener('click', e => { e.preventDefault(); fn(); }));
+    const doc = Store.doc(p.id);
+    ho('new', () => { hoEdit = { pid: p.id, text: sbarDraft(p, doc) }; App.render(); });
+    ho('prev', () => { const l = handoffs(doc)[0]; hoEdit = { pid: p.id, text: l ? l.data.text : sbarDraft(p, doc) }; App.render(); });
+    ho('cancel', () => { hoEdit = null; App.render(); });
+    ho('review', () => { const l = handoffs(doc)[0]; if (l && Store.add(p.id, 'ack', { ref: l.id, kind: 'handoff' }, Date.now(), Date.now())) UI.toast('Handoff marked reviewed.'); App.render(); });
+    ho('history', () => UI.modal({ title: `Handoff History — ${p.name.last}, ${p.name.first}`, wide: true,
+      body: handoffs(Store.doc(p.id)).map(e => `<article class="note"><header><strong>${esc(U.fmtDT(e.time))}</strong> · ${esc(e.user.name)}</header><div>${U.nl2br(e.data.text)}</div></article>`).join(''),
+      buttons: [{ label: 'Close' }] }));
+    const f = root.querySelector('.ho-edit');
+    if (f) f.addEventListener('submit', e => {
+      e.preventDefault();
+      const text = f.text.value.trim();
+      if (!text) { UI.formError(f, 'Write the handoff before saving.'); return; }
+      if (Store.add(p.id, 'notes', { type: HO_TYPE, text }, Date.now(), Date.now())) { hoEdit = null; UI.toast('Handoff saved.'); }
+      App.render();
+    });
+  }
+
   Screens.census = {
     selected: () => selected,
     render() {
@@ -223,6 +359,7 @@
       if (listTab == null || !faculty) listTab = 'my';
       const shown = all.filter(b => inList(listTab, b));
       if (selected && !shown.some(b => b.id === selected)) selected = null;
+      const paneOn = selected ? pane : null;
       const tab = (t, label, n) => `<button type="button" class="tk-tab ${listTab === t ? 'on' : ''}" data-list="${esc(t)}">${t !== 'my' ? '▾ ' : ''}${esc(label)} <span class="tk-n">${n}</span></button>`;
       return `<div class="tk">
         <div class="tk-top">
@@ -244,15 +381,20 @@
           ${tab('my', 'My List', mine.length)}
           ${listTab === 'all' ? tab('all', 'All Test Accounts', all.length) : ''}
           <div class="tk-actions">
-            <button type="button" class="tk-btn" data-action="open" ${selected ? '' : 'disabled'}>Open Patient Summary</button>
-            <button type="button" class="tk-btn" data-action="handoff" ${selected ? '' : 'disabled'}>Open Hand Off</button>
+            ${paneOn ? `<button type="button" class="tk-btn tk-btn-on" data-action="closepane">Close ${paneOn === 'handoff' ? 'Handoff' : 'Summary'}</button>` : ''}
+            ${paneOn === 'summary' ? '' : `<button type="button" class="tk-btn" data-action="summary" ${selected ? '' : 'disabled'}>Open Patient Summary</button>`}
+            ${paneOn === 'handoff' ? '' : `<button type="button" class="tk-btn" data-action="handoff" ${selected ? '' : 'disabled'}>Open Hand Off</button>`}
             ${listTab === 'my' ? '' : `<button type="button" class="tk-btn" data-action="addsel" ${selected && !mine.includes(selected) ? '' : 'disabled'}>Add to My List</button>`}
           </div>
         </div>
-        <div class="tk-head"><span></span><span></span><span>Name<br>Age/Sex<br>Unit · Room</span><span>Reason for Visit<br>Attending<br>Admitted</span><span>Alerts<br>Home Meds</span><span>Code Status<br>Allergies<br>Isolation</span><span></span><span>Vital Signs<br>Orders/Results</span></div>
+        ${paneOn ? `<div class="ho">
+          <div class="ho-list">${shown.map(b => { const ip = (b.name.first[0] + b.name.last[0]).toUpperCase(); return `<div class="ho-row ${b.id === selected ? 'ho-sel' : ''}" data-hopick="${esc(b.id)}" tabindex="0">
+              <div class="avatar ho-mini" aria-hidden="true">${esc(ip)}</div><div><strong>${esc(b.name.last)}, ${esc(b.name.first)}</strong><div class="tk-cc"><strong>${esc(Model.chiefComplaint(b))}</strong></div><div class="muted">${esc(String(b.age).replace(' years', ''))} ${esc(b.sex)} · ${esc(b.room || '')}</div></div></div>`; }).join('')}</div>
+          ${paneOn === 'handoff' ? handoffPane(Model.get(selected)) : summaryPane(Model.get(selected))}
+        </div>` : `<div class="tk-head"><span></span><span></span><span>Name<br>Age/Sex<br>Unit · Room</span><span>Reason for Visit<br>Attending<br>Admitted</span><span>Alerts<br>Home Meds</span><span>Code Status<br>Allergies<br>Isolation</span><span></span><span>Vital Signs<br>Orders/Results</span></div>
         <div class="tk-list">${shown.length ? shown.map(row).join('')
           : listTab === 'my' ? `<div class="empty tk-empty">No patients on your list. Select the <strong>☰</strong> menu next to your name, then <strong>Add Patients…</strong></div>`
-          : '<div class="empty tk-empty">No test accounts on this list.</div>'}</div>
+          : '<div class="empty tk-empty">No test accounts on this list.</div>'}</div>`}
         <p class="muted small tk-tip">Select a patient, then use Chart, Document, or Orders above, or double-click to open the chart. ▸ shows more. Always verify two identifiers.</p>
       </div>`;
     },
@@ -268,8 +410,15 @@
       act('add', () => addPatients());
       act('clear', () => { if (!Store.myList().length) return; UI.confirm('Clear My List', 'Remove every patient from your list? Their charts are not changed.', () => { Store.setMyList([]); selected = null; App.render(); }, 'Clear'); });
       act('refresh', () => App.render());
-      act('open', () => go(selected));
-      act('handoff', () => go(selected, 'report'));
+      act('summary', () => { if (selected) { pane = 'summary'; hoEdit = null; App.render(); } });
+      act('handoff', () => { if (selected) { pane = 'handoff'; hoEdit = null; App.render(); } });
+      act('closepane', () => { pane = null; hoEdit = null; App.render(); });
+      root.querySelectorAll('[data-hopick]').forEach(r => {
+        r.addEventListener('click', () => { if (r.dataset.hopick !== selected) { selected = r.dataset.hopick; hoEdit = null; App.render(); } });
+        r.addEventListener('dblclick', () => go(r.dataset.hopick));
+        r.addEventListener('keydown', e => { if (e.key === 'Enter') { selected = r.dataset.hopick; hoEdit = null; App.render(); } });
+      });
+      if (pane === 'handoff' && selected && root.querySelector('.ho-note')) bindHandoff(root, Model.get(selected));
       act('remove', () => {
         if (!selected || listTab !== 'my') { UI.toast('Select a patient on your list first.', 'warn'); return; }
         Store.setMyList(Store.myList().filter(x => x !== selected)); selected = null; App.render();
